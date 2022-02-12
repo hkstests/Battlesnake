@@ -3,6 +3,7 @@ import os
 
 from flask import Flask
 from flask import request
+from classes.GameData import GameData
 
 import server_logic
 
@@ -39,6 +40,8 @@ def handle_start():
     """
     data = request.get_json()
 
+    gamedata = GameData(data)
+    # gamedata.get_f
     print(f"{data['game']['id']} START")
     return "ok"
 
@@ -68,10 +71,12 @@ def end():
     print(f"{data['game']['id']} END")
     return "ok"
 
+
 @app.after_request
 def identify_server(response):
     response.headers["Server"] = "BattlesnakeOfficial/starter-snake-python"
     return response
+
 
 if __name__ == "__main__":
     logging.getLogger("werkzeug").setLevel(logging.ERROR)
