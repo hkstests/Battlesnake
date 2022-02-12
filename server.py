@@ -4,10 +4,16 @@ import os
 from flask import Flask
 from flask import request
 
+from threading import Thread
+
 import server_logic
 
 
 app = Flask(__name__)
+
+import time
+
+
 
 
 @app.get("/")
@@ -73,9 +79,18 @@ def identify_server(response):
     response.headers["Server"] = "BattlesnakeOfficial/starter-snake-python"
     return response
 
+def keep_alive():
+    server = Thread(target=run)
+    server.start()
+
+def run():
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8080")))
+
 if __name__ == "__main__":
     logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
     print("Starting Battlesnake Server...")
-    port = int(os.environ.get("PORT", "8080"))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    # port = int(os.environ.get("PORT", "8080"))
+    # app.run(host="0.0.0.0", port=port, debug=True)
+
+    keep_alive()
