@@ -1,6 +1,7 @@
 
 from typing import List
 from classes.Snake import Snake
+from classes.enums.mode import Mode
 
 
 class GameData():
@@ -10,43 +11,44 @@ class GameData():
         # your snake
         self._my_snake = Snake(self._game["you"])
 
-        _snakes = self._game["snakes"]
-
         # team snakes (will be empty if squad is not set)
-        self._team_snakes = extract_team_snakes(self._my_snake, _snakes)
+        self._team_snakes = extract_team_snakes(
+            self._my_snake, self._game["board"]["snakes"])
 
         # add enemy snakes
-        self._enemy_snakes = extract_enemy_snakes(self._my_snake, _snakes)
+        self._enemy_snakes = extract_enemy_snakes(
+            self._my_snake, self._game["board"]["snakes"])
 
     def is_standard_mode(self) -> bool:
         """
             Returns true if the game is in standard mode, else false
         """
-        return self._game["game"]["ruleset"]["name"] == "standard"
+        print(Mode.standard)
+        return self._game["game"]["ruleset"]["name"] == Mode.standard.value
 
-    def is_royal_mode(self) -> bool:
+    def is_royale_mode(self) -> bool:
         """
-            Returns true if the game is in royal mode, else false
+            Returns true if the game is in royale mode, else false
         """
-        return self._game["game"]["ruleset"]["name"] == "royal"
+        return self._game["game"]["ruleset"]["name"] == Mode.royale.value
 
     def is_squad_mode(self) -> bool:
         """
             Returns true if the game is in squad mode, else false
         """
-        return self._game["game"]["ruleset"]["name"] == "squad"
+        return self._game["game"]["ruleset"]["name"] == Mode.squad.value
 
     def is_constrictor_mode(self) -> bool:
         """
             Returns true if the game is in constrictor mode, else false
         """
-        return self._game["game"]["ruleset"]["name"] == "constrictor"
+        return self._game["game"]["ruleset"]["name"] == Mode.constrictor.value
 
     def is_wrapped_mode(self) -> bool:
         """
             Returns true if the game is in wrapped mode, else false
         """
-        return self._game["game"]["ruleset"]["name"] == "wrapped"
+        return self._game["game"]["ruleset"]["name"] == Mode.wrapped.value
 
     def get_board_width(self) -> int:
         """
@@ -78,49 +80,49 @@ class GameData():
         """
             Percentage chance (value in range of (0,100] ) of spawning a new food every round.
         """
-        return self._game["ruleset"]["settings"]["foodSpawnChance"]
+        return self._game["game"]["ruleset"]["settings"]["foodSpawnChance"]
 
     def get_minimum_food_count(self) -> int:
         """
             Minimum food to keep on the board every turn.
         """
-        return self._game["ruleset"]["settings"]["minimumFood"]
+        return self._game["game"]["ruleset"]["settings"]["minimumFood"]
 
     def get_hazard_damage(self) -> int:
         """
             Health damage a snake will take when ending its turn in a hazard. This stacks on top of the regular 1 damage a snake takes per turn.
         """
-        return self._game["ruleset"]["settings"]["hazardDamagePerTurn"]
+        return self._game["game"]["ruleset"]["settings"]["hazardDamagePerTurn"]
 
     def get_royal_shrink_n_turns(self) -> int:
         """
             In Royale mode, the number of turns between generating new hazards (shrinking the safe board space).
         """
-        return self._game["ruleset"]["settings"]["royal"]["shrinkEveryNTurns"]
+        return self._game["game"]["ruleset"]["settings"]["royale"]["shrinkEveryNTurns"]
 
     def is_squad_body_collision_allowed(self) -> bool:
         """
             In Squad mode, it is true if members of the same squad are allowed to move over each other without dying.
         """
-        return self._game["ruleset"]["settings"]["squad"]["allowBodyCollisions"]
+        return self._game["game"]["ruleset"]["settings"]["squad"]["allowBodyCollisions"]
 
     def is_squad_shared_elimination_on(self) -> bool:
         """
             In Squad mode, it is true if all squad members are eliminated when one is eliminated.
         """
-        return self._game["ruleset"]["settings"]["squad"]["sharedElimination"]
+        return self._game["game"]["ruleset"]["settings"]["squad"]["sharedElimination"]
 
     def is_squad_shared_health_on(self) -> bool:
         """
             In Squad mode, it is true if all squad members share health.
         """
-        return self._game["ruleset"]["settings"]["squad"]["sharedHealth"]
+        return self._game["game"]["ruleset"]["settings"]["squad"]["sharedHealth"]
 
     def is_squad_shared_length_on(self) -> bool:
         """
             In Squad mode, it is true if all squad members share length.
         """
-        return self._game["ruleset"]["settings"]["squad"]["sharedLength"]
+        return self._game["game"]["ruleset"]["settings"]["squad"]["sharedLength"]
 
     def get_my_snake(self) -> Snake:
         """
@@ -139,6 +141,42 @@ class GameData():
             Returns a list of snake objects representing your enemy snakes.
         """
         return self._enemy_snakes
+
+    def print(self):
+        print(f"is standard mode : {self.is_standard_mode()}")
+        print(f"is royale mode : {self.is_royale_mode()}")
+        print(f"is squad mode : {self.is_squad_mode()}")
+        print(f"is constrictor mode : {self.is_constrictor_mode()}")
+        print(f"is wrapped mode : {self.is_wrapped_mode()}")
+        print("---------------------------------------------------")
+        print(f"board width : {self.get_board_width()}")
+        print(f"board height : {self.get_board_height()}")
+        print(f"food spawn chance : {self.get_food_spawn_chance()}")
+        print(f"food minimum count : {self.get_minimum_food_count()}")
+        print(f"hazard damage {self.get_hazard_damage()}")
+        print("---------------------------------------------------")
+        print(f"royale shrink n turns {self.get_royal_shrink_n_turns()}")
+        print("---------------------------------------------------")
+        print(
+            f"is squad body collision allowed {self.is_squad_body_collision_allowed()}")
+        print(
+            f"is squad shared elimination on : {self.is_squad_shared_elimination_on()}")
+        print(
+            f"is squad shared health on : {self.is_squad_shared_health_on()}")
+        print(
+            f"is squad shared length on : {self.is_squad_shared_length_on()}")
+        print("---------------------------------------------------")
+        print(f"food positions : {self.get_food_positions()}")
+        print(f"hazard positions : {self.get_hazard_positions()}")
+        print("---------------------------------------------------")
+        print("---------------------------------------------------")
+        self.get_my_snake().print("my snake")
+        print("---------------------------------------------------")
+        for team_snake in self.get_team_snakes():
+            team_snake.print("team snake")
+        print("---------------------------------------------------")
+        for enemy_snake in self.get_enemy_snakes():
+            enemy_snake.print("enemy snake")
 
 
 def extract_team_snakes(my_snake, snakes):

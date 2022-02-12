@@ -40,3 +40,12 @@ class Snake:
             Example: "1"
         """
         return self._snake["squad"]
+
+    def print(self, snake_type):
+        print(f"{snake_type} id {self.get_id()}")
+        print(f"{snake_type} squad {self.get_squad()}")
+        print(f"{snake_type} health {self.get_health()}")
+        print(
+            f"{snake_type} head position {self.get_head_position()}")
+        print(
+            f"{snake_type} body positions {self.get_body_positions()}")
