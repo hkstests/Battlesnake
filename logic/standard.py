@@ -9,11 +9,13 @@ import random
 def handle_move(gamedata: GameData) -> string:
 
     my_head = gamedata.get_my_snake().get_head_position()
+    board_width = gamedata.get_board_width()
+    board_height = gamedata.get_board_height()
 
-    left_position = {"x": (my_head["x"] - 1), "y": my_head["y"]}
-    right_position = {"x": (my_head["x"] + 1), "y": my_head["y"]}
-    up_position = {"x": my_head["x"], "y": (my_head["y"] + 1)}
-    down_position = {"x": my_head["x"], "y": (my_head["y"] - 1)}
+    left_position = {"x": (my_head["x"] - 1) % board_width, "y": my_head["y"]}
+    right_position = {"x": (my_head["x"] + 1) % board_width, "y": my_head["y"]}
+    up_position = {"x": my_head["x"], "y": (my_head["y"] + 1) % board_height}
+    down_position = {"x": my_head["x"], "y": (my_head["y"] - 1) % board_height}
 
     possible_moves = []
 
