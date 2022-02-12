@@ -7,13 +7,11 @@ from logic.enums.move import Move
 def handle_move(gamedata: GameData) -> string:
 
     my_head = gamedata.get_my_snake().get_head_position()
-    board_width = gamedata.get_board_width()
-    board_height = gamedata.get_board_height()
 
-    left_position = {"x": (my_head["x"] - 1) % board_width, "y": my_head["y"]}
-    right_position = {"x": (my_head["x"] + 1) % board_width, "y": my_head["y"]}
-    up_position = {"x": my_head["x"], "y": (my_head["y"] + 1) % board_height}
-    down_position = {"x": my_head["x"], "y": (my_head["y"] - 1) % board_height}
+    left_position = {"x": (my_head["x"] - 1), "y": my_head["y"]}
+    right_position = {"x": (my_head["x"] + 1), "y": my_head["y"]}
+    up_position = {"x": my_head["x"], "y": (my_head["y"] + 1)}
+    down_position = {"x": my_head["x"], "y": (my_head["y"] - 1)}
 
     move = ""
 
@@ -33,7 +31,17 @@ def handle_move(gamedata: GameData) -> string:
 
 
 def is_position_free(gamedata: GameData, new_position: dict) -> bool:
+    board_width = gamedata.get_board_width()
+    board_height = gamedata.get_board_height()
 
+    # check board collision
+    if new_position["x"] < 0 or new_position["x"] >= board_width:
+        return False
+
+    if new_position["y"] < 0 or new_position["y"] >= board_height:
+        return False
+
+    # check collisions with snakes
     if collides_with_snake(gamedata.get_my_snake(), new_position):
         return False
 
