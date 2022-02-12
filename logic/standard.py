@@ -15,16 +15,21 @@ def handle_move(gamedata: GameData) -> string:
     up_position = {"x": my_head["x"], "y": (my_head["y"] + 1) % board_height}
     down_position = {"x": my_head["x"], "y": (my_head["y"] - 1) % board_height}
 
+    move = ""
+
     if(is_position_free(gamedata, left_position)):
-        return Move.left.value
+        move = Move.left.value
     elif(is_position_free(gamedata, right_position)):
-        return Move.right.value
+        move = Move.right.value
     elif(is_position_free(gamedata, up_position)):
-        return Move.up.value
+        move = Move.up.value
     elif(is_position_free(gamedata, down_position)):
-        return Move.down.value
+        move = Move.down.value
     else:
-        return Move.up.value
+        move = Move.up.value
+
+    print(f"{gamedata.get_my_snake().get_id()} : {move}")
+    return move
 
 
 def is_position_free(gamedata: GameData, new_position: dict) -> bool:
