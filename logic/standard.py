@@ -1,9 +1,8 @@
 import string
-from turtle import right
+from typing import List
 from classes import Snake
 from classes.GameData import GameData
 from logic.enums.move import Move
-import random
 
 
 def handle_move(gamedata: GameData) -> string:
@@ -12,30 +11,79 @@ def handle_move(gamedata: GameData) -> string:
     board_width = gamedata.get_board_width()
     board_height = gamedata.get_board_height()
 
-    left_position = {"x": (my_head["x"] - 1) % board_width, "y": my_head["y"]}
-    right_position = {"x": (my_head["x"] + 1) % board_width, "y": my_head["y"]}
-    up_position = {"x": my_head["x"], "y": (my_head["y"] + 1) % board_height}
-    down_position = {"x": my_head["x"], "y": (my_head["y"] - 1) % board_height}
+    final_move = ""
 
-    possible_moves = []
+    left = {
+        "position": {"x": (my_head["x"] - 1) % board_width, "y": my_head["y"]},
+        "move": Move.left.value
+    }
+    right = {
+        "position": {"x": (my_head["x"] + 1) % board_width, "y": my_head["y"]},
+        "move": Move.right.value
+    }
+    up = {
+        "position": {"x": my_head["x"], "y": (my_head["y"] + 1) % board_height},
+        "move": Move.up.value
+    }
+    down = {
+        "position": {"x": my_head["x"], "y": (my_head["y"] - 1) % board_height},
+        "move": Move.down.value
+    }
 
-    if(is_position_free(gamedata, left_position) and is_hazard_free(gamedata, left_position)):
-        possible_moves.append(Move.left.value)
-    if(is_position_free(gamedata, right_position) and is_hazard_free(gamedata, right_position)):
-        possible_moves.append(Move.right.value)
-    if(is_position_free(gamedata, up_position) and is_hazard_free(gamedata, up_position)):
-        possible_moves.append(Move.up.value)
-    if(is_position_free(gamedata, down_position) and is_hazard_free(gamedata, down_position)):
-        possible_moves.append(Move.down.value)
+    possible_moves = [left, right, up, down]
 
-    # just return smth when your destiny is to die anyway
-    if len(possible_moves) == 0:
-        return Move.left.value
+    collision_free_moves = []
 
-    move = random.choice(possible_moves)
+    for move in possible_moves:
+        if is_collision_free(gamedata, move["position"]):
+            collision_free_moves.append(move)
 
-    print(f"{gamedata.get_my_snake().get_id()} : {move}")
-    return move
+    # just go left if you'd die anyway due to collision
+    if len(collision_free_moves) == 0:
+        final_move = Move.left.value
+        print(f"{gamedata.get_my_snake().get_id()} : {final_move}")
+        return final_move
+
+    hazard_free_moves = []
+
+    for move in hazard_free_moves:
+        if is_hazard_free(gamedata, move["position"]):
+            hazard_free_moves.append(move)
+
+    # just enter the hazard if there is no other chance to prevent it
+    if len(hazard_free_moves) == 0:
+        final_move = get_closest_move_to_food(gamedata, collision_free_moves)["move"]
+    else:
+        final_move = get_closest_move_to_food(gamedata, hazard_free_moves)["move"]
+
+    print(f"{gamedata.get_my_snake().get_id()} : {final_move}")
+    return final_move
+
+
+def get_closest_move_to_food(gamedata: GameData, moves: List[dict]) -> dict:
+    food_positions = gamedata.get_food_positions()
+
+    closest_move_to_food = moves[0]
+    closest_distance = compute_distance(gamedata, moves[0]["position"], food_positions[0])
+
+    for move in moves:
+        for food_position in food_positions:
+            distance = compute_distance(gamedata, move["position"], food_position)
+            if distance < closest_distance:
+                closest_move_to_food = move
+                closest_distance = distance
+
+    return closest_move_to_food
+
+
+def compute_distance(gamedata: GameData, position0: dict, position1: dict) -> int:
+    board_width = gamedata.get_board_width()
+    board_height = gamedata.get_board_height()
+
+    horizontal_distance = min(abs(position0["x"] - position1["x"]), board_width - 1 - position0["x"] + position1["x"] + 1)
+    vertical_distance = min(abs(position0["y"] - position1["y"]), board_height - 1 - position0["y"] + position1["y"] + 1)
+
+    return horizontal_distance + vertical_distance
 
 
 def is_hazard_free(gamedata: GameData, new_position: dict) -> bool:
@@ -46,16 +94,7 @@ def is_hazard_free(gamedata: GameData, new_position: dict) -> bool:
     return True
 
 
-def is_position_free(gamedata: GameData, new_position: dict) -> bool:
-    # board_width = gamedata.get_board_width()
-    # board_height = gamedata.get_board_height()
-
-    # # check board collision
-    # if new_position["x"] < 0 or new_position["x"] >= board_width:
-    #     return False
-
-    # if new_position["y"] < 0 or new_position["y"] >= board_height:
-    #     return False
+def is_collision_free(gamedata: GameData, new_position: dict) -> bool:
 
     # check collisions with snakes
     if collides_with_snake(gamedata.get_my_snake(), new_position):
