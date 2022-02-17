@@ -19,6 +19,9 @@ class GameData():
         self._enemy_snakes = extract_enemy_snakes(
             self._my_snake, self._game["board"]["snakes"])
 
+    def get_turn(self) -> int:
+        return self._game["turn"]
+
     def is_standard_mode(self) -> bool:
         """
             Returns true if the game is in standard mode, else false

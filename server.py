@@ -89,6 +89,9 @@ def end():
     data = request.get_json()
 
     print(f"{data['game']['id']} END")
+    print(data)
+    print("----------------------------")
+    print("----------------------------")
     return "ok"
 
 

@@ -56,7 +56,7 @@ def handle_move(gamedata: GameData) -> string:
     else:
         final_move = get_closest_move_to_food(gamedata, hazard_free_moves)["move"]
 
-    print(f"{gamedata.get_my_snake().get_id()} : {final_move}")
+    print(f"{gamedata.get_my_snake().get_id()} : {final_move} on turn {gamedata.get_turn()}")
     return final_move
 
 
