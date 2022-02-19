@@ -1,3 +1,4 @@
+from classes.RunningSnakes import RunningSnakes
 import server_logic
 from logic import constrictor
 from logic import royale
@@ -12,8 +13,11 @@ import time
 import logging
 import os
 
+import urllib.request
 
 app = Flask(__name__)
+
+running_snakes = RunningSnakes()
 
 
 @app.get("/")
@@ -44,6 +48,9 @@ def handle_start():
     request.json contains information about the game that's about to be played.
     """
     data = request.get_json()
+    gamedata = GameData(data)
+
+    running_snakes.add_running_snake(gamedata.get_my_snake().get_id())
 
     # gamedata.get_f
     print(f"{data['game']['id']} START")
@@ -87,9 +94,16 @@ def end():
     It's purely for informational purposes, you don't have to make any decisions here.
     """
     data = request.get_json()
+    gamedata = GameData(data)
+
+    running_snakes.remove_running_snake(gamedata.get_my_snake().get_id())
 
     print(f"{data['game']['id']} END")
     print(data)
+    print("----------------------------")
+    print("----------------------------")
+    contents = urllib.request.urlopen(f"https://engine.battlesnake.com/games/{data['game']['id']}/frames?offset={gamedata.get_turn()}&limit=1").read()
+    print(contents)
     print("----------------------------")
     print("----------------------------")
     return "ok"
@@ -118,111 +132,3 @@ if __name__ == "__main__":
     # app.run(host="0.0.0.0", port=port, debug=True)
 
     keep_alive()
-
-    # data = {
-    #     "game": {
-    #         "id": "game-00fe20da-94ad-11ea-bb37",
-    #         "ruleset": {
-    #             "name": "standard",
-    #             "version": "v.1.2.3",
-    #             "settings": {
-    #                 "foodSpawnChance": 25,
-    #                 "minimumFood": 1,
-    #                 "hazardDamagePerTurn": 14,
-    #                 "map": "hz_spiral",
-    #                 "royale": {
-    #                     "shrinkEveryNTurns": 5
-    #                 },
-    #                 "squad": {
-    #                     "allowBodyCollisions": True,
-    #                     "sharedElimination": True,
-    #                     "sharedHealth": True,
-    #                     "sharedLength": True
-    #                 }
-    #             }
-    #         },
-    #         "timeout": 500
-    #     },
-    #     "turn": 14,
-    #     "board": {
-    #         "height": 11,
-    #         "width": 11,
-    #         "food": [
-    #             {"x": 5, "y": 5},
-    #             {"x": 9, "y": 0},
-    #             {"x": 2, "y": 6}
-    #         ],
-    #         "hazards": [
-    #             {"x": 3, "y": 2}
-    #         ],
-    #         "snakes": [
-    #             {
-    #                 "id": "snake-508e96ac-94ad-11ea-bb37",
-    #                 "name": "My Snake",
-    #                 "health": 54,
-    #                 "body": [
-    #                     {"x": 0, "y": 0},
-    #                     {"x": 1, "y": 0},
-    #                     {"x": 2, "y": 0}
-    #                 ],
-    #                 "latency": "111",
-    #                 "head": {"x": 0, "y": 0},
-    #                 "length": 3,
-    #                 "shout": "why are we shouting??",
-    #                 "squad": "",
-    #                 "customizations": {
-    #                     "color": "#FF0000",
-    #                     "head": "pixel",
-    #                     "tail": "pixel"
-    #                 }
-    #             },
-    #             {
-    #                 "id": "snake-b67f4906-94ae-11ea-bb37",
-    #                 "name": "Another Snake",
-    #                 "health": 16,
-    #                 "body": [
-    #                     {"x": 5, "y": 4},
-    #                     {"x": 5, "y": 3},
-    #                     {"x": 6, "y": 3},
-    #                     {"x": 6, "y": 2}
-    #                 ],
-    #                 "latency": "222",
-    #                 "head": {"x": 5, "y": 4},
-    #                 "length": 4,
-    #                 "shout": "I'm not really sure...",
-    #                 "squad": "",
-    #                 "customizations": {
-    #                     "color": "#26CF04",
-    #                     "head": "silly",
-    #                     "tail": "curled"
-    #                 }
-    #             }
-    #         ]
-    #     },
-    #     "you": {
-    #         "id": "snake-508e96ac-94ad-11ea-bb37",
-    #         "name": "My Snake",
-    #         "health": 54,
-    #         "body": [
-    #             {"x": 0, "y": 0},
-    #             {"x": 1, "y": 0},
-    #             {"x": 2, "y": 0}
-    #         ],
-    #         "latency": "111",
-    #         "head": {"x": 0, "y": 0},
-    #         "length": 3,
-    #         "shout": "why are we shouting??",
-    #         "squad": "",
-    #         "customizations": {
-    #             "color": "#FF0000",
-    #             "head": "pixel",
-    #             "tail": "pixel"
-    #         }
-    #     }
-    # }
-
-    # start = time.time()
-    # gamedata = GameData(data)
-    # print(standard.handle_move(gamedata))
-    # end = time.time()
-    # gamedata.print()
