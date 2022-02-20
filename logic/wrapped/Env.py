@@ -10,7 +10,8 @@ my_snake_body = 0.5
 enemy_snake_head = 0.6
 enemy_snake_body = 0.7
 
-hazard = 0.3
+hazard = 0.4
+food = 0.2
 
 
 def assemble_gamestate(gamedata: GameData) -> np.ndarray:
@@ -30,8 +31,18 @@ def assemble_gamestate(gamedata: GameData) -> np.ndarray:
     _set_snake_values(gamestate, my_snake, my_snake_head, my_snake_body)
 
     hazard_positions = gamedata.get_hazard_positions()
-    _set_hazard_values(gamestate, hazard_positions, hazard)
+    _set_values(gamestate, hazard_positions, hazard)
 
+    food_positions = gamedata.get_food_positions()
+    _set_values(gamestate, food_positions, food)
+
+    # print(gamestate)
+    # print(gamestate.shape)
+    # gamestate.reshape(11, 11, 1)
+    # print(gamestate.shape)
+    gamestate = np.expand_dims(gamestate, axis=0)
+    gamestate = np.expand_dims(gamestate, axis=-1)
+    # print(gamestate.shape)
     return gamestate
 
 
@@ -44,6 +55,6 @@ def _set_snake_values(gamestate: np.ndarray, snake: Snake, head_value: float, bo
     gamestate[head_position["x"], head_position["y"]] = head_value
 
 
-def _set_hazard_values(gamestate: np.ndarray, hazard_positions, hazard_value: float):
-    for position in hazard_positions:
-        gamestate[position["x"], position["y"]] = hazard_value
+def _set_values(gamestate: np.ndarray, positions, value: float):
+    for position in positions:
+        gamestate[position["x"], position["y"]] = value

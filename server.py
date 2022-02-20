@@ -1,3 +1,4 @@
+import threading
 import server_logic
 from logic import constrictor
 from logic import royale
@@ -11,6 +12,10 @@ from flask import Flask
 import time
 import logging
 import os
+
+import os
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 app = Flask(__name__)
@@ -77,6 +82,7 @@ def handle_move():
     #     move = standard.handle_move(gamedata)
     # gamedata.print()
     move = wrapped.handle_move(gamedata)
+    print(f"move turn : {gamedata.get_turn()}")
 
     # TODO - look at the server_logic.py file to see how we decide what move to return!
     # move = server_logic.choose_move(data)

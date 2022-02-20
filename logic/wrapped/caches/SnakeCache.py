@@ -9,9 +9,13 @@ class SnakeCache:
         self._action = 0
         self._gamestate = []
         self._gamedata: GameData = None
+        self._open_save = True
 
     def get_id(self):
         return self._id
+
+    def get_open_save(self):
+        return self._open_save
 
     def get_action(self):
         return self._action
@@ -36,3 +40,6 @@ class SnakeCache:
 
     def set_gamedata(self, gamedata: GameData):
         self._gamedata = gamedata
+
+    def set_open_save(self, open_save: bool):
+        self._open_save = open_save

@@ -25,5 +25,12 @@ class SnakeCaches:
             if snake_cache.get_id() == id:
                 return snake_cache
 
+    def get_open_saves(self):
+        count = 0
+        for snake_cache in self._snake_caches:
+            if snake_cache.get_open_save():
+                count += 1
+        return count
+
     def get_game_id(self):
         return self._game_id

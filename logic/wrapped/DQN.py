@@ -5,11 +5,13 @@ import random
 # from keras.optimizers import Adam
 
 from tensorflow import keras
-from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.layers import Dense, Dropout, Conv2D, Flatten
+from tensorflow.keras import Input
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Sequential
 
 from collections import deque
+import pickle
 
 
 class DQN:
@@ -31,11 +33,12 @@ class DQN:
         model = Sequential()
         # state_shape = self.env.observation_space.shape
         # model.add(Dense(24, input_dim=state_shape[0], activation="relu"))
-        model.add(Dense(24, input_dim=5, activation="relu"))
-        model.add(Dense(48, activation="relu"))
+        model.add(Conv2D(filters=3, kernel_size=3, activation="relu", input_shape=(11, 11, 1), padding="same"))
+        model.add(Conv2D(filters=3, kernel_size=3, activation="relu", padding="same"))
+        model.add(Flatten())
         model.add(Dense(24, activation="relu"))
-        # model.add(Dense(self.env.action_space.n))
-        model.add(Dense(5))
+        model.add(Dense(12, activation="relu"))
+        model.add(Dense(3, activation="relu"))
         model.compile(loss="mean_squared_error",
                       optimizer=Adam(lr=self.learning_rate))
         return model
@@ -44,18 +47,15 @@ class DQN:
         self.epsilon *= self.epsilon_decay
         self.epsilon = max(self.epsilon_min, self.epsilon)
         # if np.random.random() < self.epsilon:
-        #     return self.env.action_space.sample()
-        # return np.argmax(self.model.predict(state)[0])
-
-        if np.random.random() < self.epsilon:
-            return 0
-        return 1
+        # return random.randint(0, 2)
+        res = self.model.predict(x=state)[0]  # get field 0 due to the output format [[ ... ]]
+        return np.argmax(res)
 
     def remember(self, state, action, reward, new_state, done):
         self.memory.append([state, action, reward, new_state, done])
 
     def replay(self):
-        batch_size = 32
+        batch_size = 1
         if len(self.memory) < batch_size:
             return
 
@@ -79,3 +79,23 @@ class DQN:
 
     def save_model(self, fn):
         self.model.save(fn)
+
+    def save_target_model(self, fn):
+        self.target_model.save(fn)
+
+    def load_model(self, fn):
+        self.model = keras.models.load_model(fn)
+
+    def load_target_model(self, fn):
+        self.target_model = keras.models.load_model(fn)
+
+    def save_values(self, fn):
+        input_dictionary = {"epsilon": self.epsilon}
+        with open(fn, 'wb') as handle:
+            pickle.dump(input_dictionary, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def load_values(self, fn):
+        with open(fn, 'rb') as f:
+            dict = pickle.load(f)
+            self.epsilon = dict["epsilon"]
+            print(f"loaded epsilon {self.epsilon}")

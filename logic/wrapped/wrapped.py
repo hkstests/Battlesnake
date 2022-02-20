@@ -1,6 +1,9 @@
 import string
 
 import numpy as np
+import os
+
+from pyrsistent import dq
 
 from classes.GameData import GameData
 from logic.enums.move import Move
@@ -12,6 +15,11 @@ from logic.wrapped.caches.SnakeCaches import SnakeCaches
 dqn = DQN()
 # TODO
 # check if model weights exist and load them respectively
+if os.path.isdir("logic/wrapped/mymodel"):
+    print("load models")
+    dqn.load_model("logic/wrapped/mymodel/model")
+    dqn.load_target_model("logic/wrapped/mymodel/target-model")
+    dqn.load_values("logic/wrapped/mymodel/values.pickle")
 
 # will be reset in prepare function - see below
 snake_caches = SnakeCaches("")
@@ -28,9 +36,16 @@ def handle_move(gamedata: GameData) -> string:
     snake_cache = snake_caches.get_snake_cache(gamedata.get_my_snake().get_id())
 
     # handle first turn
+    print(f"turn gamedata {gamedata.get_turn()} - turn first {first_turn}")
     if gamedata.get_turn() == first_turn:
+        print("go into first turn")
         game_state = assemble_gamestate(gamedata)
+
+        print("get action")
         action = dqn.act(game_state)
+
+        print("show action")
+        print(f"action : {action}")
 
         # cache values
         snake_cache.set_gamestate(game_state)
@@ -41,7 +56,7 @@ def handle_move(gamedata: GameData) -> string:
         return Move.left.value
 
     # handle later turns
-
+    print("go into later turn")
     # compute properties
     new_gamestate = assemble_gamestate(gamedata)
     # gamedata.print()
@@ -57,6 +72,7 @@ def handle_move(gamedata: GameData) -> string:
         dqn.target_train()
 
     action = dqn.act(new_gamestate)
+    print(f"action : {action}")
 
     # cache values
     snake_cache.set_gamestate(new_gamestate)
@@ -102,6 +118,8 @@ def _has_my_snake_touched_hazard(gamedata: GameData, snake_cache: SnakeCache):
 
 # create Unofficial GameData class
 def handle_end(gamedata: GameData):
+    global snake_caches
+
     # extract corresponding snake_cache
     snake_cache = snake_caches.get_snake_cache(gamedata.get_my_snake().get_id())
     if snake_cache is None:
@@ -116,6 +134,13 @@ def handle_end(gamedata: GameData):
     dqn.remember(snake_cache.get_gamestate(), snake_cache.get_action(), reward, new_gamestate, done)
     dqn.replay()
     dqn.target_train()
+
+    if snake_caches.get_open_saves() == 1:
+        print("SAVE MODEL AND VALUES")
+        dqn.save_model("logic/wrapped/mymodel/model")
+        dqn.save_target_model("logic/wrapped/mymodel/target-model")
+        dqn.save_values("logic/wrapped/mymodel/values.pickle")
+    snake_cache.set_open_save(False)
 
 
 def prepare(gamedata: GameData):
