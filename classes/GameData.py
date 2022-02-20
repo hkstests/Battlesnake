@@ -48,7 +48,7 @@ class GameData():
         """
             Returns true if the game is in standard mode, else false
         """
-        print(Mode.standard)
+        # print(Mode.standard)
         return self._data["game"]["ruleset"]["name"] == Mode.standard.value
 
     def is_royale_mode(self) -> bool:

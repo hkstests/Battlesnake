@@ -34,6 +34,32 @@ class Snake:
         """
         return self._snake["head"]
 
+    def get_direction(self) -> string:
+        body_positions = self.get_body_positions()
+        head = body_positions[0]
+        neck = body_positions[1]
+
+        if head["y"] == neck["y"]:
+            if abs(head["x"] - neck["x"]) > 1:
+                # snake is moving to the left (through the wall (e.g. in wrapped mode))
+                if head["x"] > neck["x"]:
+                    return "left"
+                return "right"
+            # else jsut follow the dir
+            if head["x"] > neck["x"]:
+                return "right"
+            return "left"
+        else:  # x must be equal
+            if abs(head["y"] - neck["y"]) > 1:
+                # snake is moving down (through the wall (e.g. in wrapped mode))
+                if head["y"] > neck["y"]:
+                    return "down"
+                return "up"
+            # else jsut follow the dir
+            if head["y"] > neck["y"]:
+                return "up"
+            return "down"
+
     def get_squad(self) -> string:
         """
             The squad that the Battlesnake belongs to. Used to identify squad members in Squad Mode games.

@@ -6,6 +6,7 @@ import os
 from pyrsistent import dq
 
 from classes.GameData import GameData
+from classes.Snake import Snake
 from logic.enums.move import Move
 from logic.wrapped.DQN import DQN
 from logic.wrapped.Env import assemble_gamestate
@@ -36,16 +37,16 @@ def handle_move(gamedata: GameData) -> string:
     snake_cache = snake_caches.get_snake_cache(gamedata.get_my_snake().get_id())
 
     # handle first turn
-    print(f"turn gamedata {gamedata.get_turn()} - turn first {first_turn}")
+    # print(f"turn gamedata {gamedata.get_turn()} - turn first {first_turn}")
     if gamedata.get_turn() == first_turn:
-        print("go into first turn")
+        # print("go into first turn")
         game_state = assemble_gamestate(gamedata)
 
-        print("get action")
+        # print("get action")
         action = dqn.act(game_state)
 
-        print("show action")
-        print(f"action : {action}")
+        # print("show action")
+        # print(f"action : {action}")
 
         # cache values
         snake_cache.set_gamestate(game_state)
@@ -53,10 +54,10 @@ def handle_move(gamedata: GameData) -> string:
         snake_cache.set_action(action)
 
         # TODO parse action and return it respectively
-        return Move.left.value
+        return parse_action(action, gamedata.get_my_snake().get_direction())
 
     # handle later turns
-    print("go into later turn")
+    # print("go into later turn")
     # compute properties
     new_gamestate = assemble_gamestate(gamedata)
     # gamedata.print()
@@ -72,7 +73,7 @@ def handle_move(gamedata: GameData) -> string:
         dqn.target_train()
 
     action = dqn.act(new_gamestate)
-    print(f"action : {action}")
+    # print(f"action : {action}")
 
     # cache values
     snake_cache.set_gamestate(new_gamestate)
@@ -81,7 +82,7 @@ def handle_move(gamedata: GameData) -> string:
 
     # TODO parse action and return it respectively
 
-    return Move.left.value
+    return parse_action(action, gamedata.get_my_snake().get_direction())
 
 
 def _get_reward(gamedata: GameData, snake_cache: SnakeCache) -> float:
@@ -159,3 +160,36 @@ def prepare(gamedata: GameData):
     snake_caches.add_snake_cache(gamedata.get_my_snake().get_id())
 
     print(f"number of snake caches : {len(snake_caches._snake_caches)}")
+
+
+def parse_action(action, snake_direction: string):
+    # action 0 = follow, 1 = turn left, 2 = turn right
+
+    if snake_direction == "left":
+        if action == 0:
+            return "left"
+        elif action == 1:
+            return "down"
+        else:  # action==2
+            return "up"
+    elif snake_direction == "right":
+        if action == 0:
+            return "right"
+        elif action == 1:
+            return "up"
+        else:  # action==2
+            return "down"
+    elif snake_direction == "up":
+        if action == 0:
+            return "up"
+        elif action == 1:
+            return "left"
+        else:  # action==2
+            return "right"
+    else:  # direction down
+        if action == 0:
+            return "down"
+        elif action == 1:
+            return "right"
+        else:  # action==2
+            return "left"

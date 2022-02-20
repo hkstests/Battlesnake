@@ -81,8 +81,11 @@ def handle_move():
     # else:
     #     move = standard.handle_move(gamedata)
     # gamedata.print()
+    start = time.time()
     move = wrapped.handle_move(gamedata)
-    print(f"move turn : {gamedata.get_turn()}")
+    print(f"move turn : {gamedata.get_turn()} to {move}")
+    end = time.time()
+    print(f"execution duration : {end - start}")
 
     # TODO - look at the server_logic.py file to see how we decide what move to return!
     # move = server_logic.choose_move(data)

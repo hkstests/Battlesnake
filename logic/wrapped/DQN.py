@@ -46,8 +46,8 @@ class DQN:
     def act(self, state):
         self.epsilon *= self.epsilon_decay
         self.epsilon = max(self.epsilon_min, self.epsilon)
-        # if np.random.random() < self.epsilon:
-        # return random.randint(0, 2)
+        if np.random.random() < self.epsilon:
+            return random.randint(0, 2)
         res = self.model.predict(x=state)[0]  # get field 0 due to the output format [[ ... ]]
         return np.argmax(res)
 
@@ -55,7 +55,7 @@ class DQN:
         self.memory.append([state, action, reward, new_state, done])
 
     def replay(self):
-        batch_size = 1
+        batch_size = 2
         if len(self.memory) < batch_size:
             return
 
