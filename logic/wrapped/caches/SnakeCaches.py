@@ -1,0 +1,29 @@
+import string
+from typing import List
+from logic.wrapped.caches.SnakeCache import SnakeCache
+
+
+class SnakeCaches:
+    def __init__(self, game_id: string):
+        self._snake_caches: List[SnakeCache] = []
+        self._game_id = game_id
+
+    def add_snake_cache(self, id: string):
+        snake_cache = SnakeCache(id)
+        self._snake_caches.append(snake_cache)
+
+    def remove_snake_cache(self, id: string):
+        idx = -1
+        for i in range(0, self._snake_caches.count):
+            if id == self._snake_caches[i].get_id():
+                idx = i
+        if idx != -1:
+            self._snake_caches.pop(idx)
+
+    def get_snake_cache(self, id: string):
+        for snake_cache in self._snake_caches:
+            if snake_cache.get_id() == id:
+                return snake_cache
+
+    def get_game_id(self):
+        return self._game_id

@@ -1,10 +1,9 @@
-from classes.RunningSnakes import RunningSnakes
 import server_logic
 from logic import constrictor
 from logic import royale
 from logic import squad
 from logic import standard
-from logic import wrapped
+from logic.wrapped import wrapped
 from threading import Thread
 from classes.GameData import GameData
 from flask import request
@@ -13,11 +12,8 @@ import time
 import logging
 import os
 
-import urllib.request
 
 app = Flask(__name__)
-
-running_snakes = RunningSnakes()
 
 
 @app.get("/")
@@ -50,7 +46,8 @@ def handle_start():
     data = request.get_json()
     gamedata = GameData(data)
 
-    running_snakes.add_running_snake(gamedata.get_my_snake().get_id())
+    # prepare wrapped game
+    wrapped.prepare(gamedata)
 
     # gamedata.get_f
     print(f"{data['game']['id']} START")
@@ -78,8 +75,8 @@ def handle_move():
     #     move = squad.handle_move(gamedata)
     # else:
     #     move = standard.handle_move(gamedata)
-
-    move = standard.handle_move(gamedata)
+    # gamedata.print()
+    move = wrapped.handle_move(gamedata)
 
     # TODO - look at the server_logic.py file to see how we decide what move to return!
     # move = server_logic.choose_move(data)
@@ -96,14 +93,12 @@ def end():
     data = request.get_json()
     gamedata = GameData(data)
 
-    running_snakes.remove_running_snake(gamedata.get_my_snake().get_id())
+    wrapped.handle_end(gamedata)
+
+    # handle end (e.g. wrapped.handle_end(gamedata))
 
     print(f"{data['game']['id']} END")
-    print(data)
-    print("----------------------------")
-    print("----------------------------")
-    contents = urllib.request.urlopen(f"https://engine.battlesnake.com/games/{data['game']['id']}/frames?offset={gamedata.get_turn()}&limit=1").read()
-    print(contents)
+    # print(data)
     print("----------------------------")
     print("----------------------------")
     return "ok"
@@ -128,7 +123,11 @@ if __name__ == "__main__":
     logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
     print("Starting Battlesnake Server...")
-    # port = int(os.environ.get("PORT", "8080"))
-    # app.run(host="0.0.0.0", port=port, debug=True)
 
-    keep_alive()
+    home = True
+
+    if home:
+        port = int(os.environ.get("PORT", "8080"))
+        app.run(host="0.0.0.0", port=port, debug=True)
+    else:
+        keep_alive()
