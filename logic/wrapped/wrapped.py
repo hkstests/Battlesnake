@@ -3,8 +3,6 @@ import string
 import numpy as np
 import os
 
-from pyrsistent import dq
-
 from classes.GameData import GameData
 from classes.Snake import Snake
 from logic.enums.move import Move
@@ -44,6 +42,7 @@ def handle_move(gamedata: GameData) -> string:
 
         # print("get action")
         action = dqn.act(game_state)
+        #action = 0
 
         # print("show action")
         # print(f"action : {action}")
@@ -69,10 +68,11 @@ def handle_move(gamedata: GameData) -> string:
 
     if latest_trained_turn <= gamedata.get_turn():
         latest_trained_turn = gamedata.get_turn() + 1
-        dqn.replay()
-        dqn.target_train()
+        #dqn.replay()
+        #dqn.target_train()
 
     action = dqn.act(new_gamestate)
+    #action = 0
     # print(f"action : {action}")
 
     # cache values
@@ -133,14 +133,14 @@ def handle_end(gamedata: GameData):
 
     # rememer state and train
     dqn.remember(snake_cache.get_gamestate(), snake_cache.get_action(), reward, new_gamestate, done)
-    dqn.replay()
-    dqn.target_train()
+    #dqn.replay()
+    #dqn.target_train()
 
     if snake_caches.get_open_saves() == 1:
         print("SAVE MODEL AND VALUES")
-        dqn.save_model("logic/wrapped/mymodel/model")
-        dqn.save_target_model("logic/wrapped/mymodel/target-model")
-        dqn.save_values("logic/wrapped/mymodel/values.pickle")
+        #dqn.save_model("logic/wrapped/mymodel/model")
+        #dqn.save_target_model("logic/wrapped/mymodel/target-model")
+        #dqn.save_values("logic/wrapped/mymodel/values.pickle")
     snake_cache.set_open_save(False)
 
 
@@ -149,8 +149,8 @@ def prepare(gamedata: GameData):
     global first_turn
     global snake_caches
 
-    latest_trained_turn = gamedata.get_turn() + 1
-    first_turn = gamedata.get_turn() + 1
+    latest_trained_turn = gamedata.get_turn()
+    first_turn = gamedata.get_turn()
 
     # if the current snake caches correspond to an older game, reset it
     if gamedata.get_id() != snake_caches.get_game_id():

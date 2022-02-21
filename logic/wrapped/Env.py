@@ -2,6 +2,7 @@
 import numpy as np
 from classes import Snake
 from classes.GameData import GameData
+from tensorflow.keras import backend as K
 
 # values for specific properties inside the gamestate
 my_snake_head = 0.1
@@ -14,7 +15,7 @@ hazard = 0.4
 food = 0.2
 
 
-def assemble_gamestate(gamedata: GameData) -> np.ndarray:
+def assemble_gamestate(gamedata: GameData):
     board_width = gamedata.get_board_width()
     board_height = gamedata.get_board_height()
 
@@ -43,6 +44,9 @@ def assemble_gamestate(gamedata: GameData) -> np.ndarray:
     gamestate = np.expand_dims(gamestate, axis=0)
     gamestate = np.expand_dims(gamestate, axis=-1)
     # print(gamestate.shape)
+
+    gamestate = K.constant(gamestate)
+  
     return gamestate
 
 

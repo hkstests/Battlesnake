@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
     print("Starting Battlesnake Server...")
 
-    home = True
+    home = False
 
     if home:
         port = int(os.environ.get("PORT", "8080"))

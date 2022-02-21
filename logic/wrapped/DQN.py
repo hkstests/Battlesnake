@@ -9,6 +9,7 @@ from tensorflow.keras.layers import Dense, Dropout, Conv2D, Flatten
 from tensorflow.keras import Input
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Sequential
+from tensorflow.keras import backend as K
 
 from collections import deque
 import pickle
@@ -17,7 +18,7 @@ import pickle
 class DQN:
     def __init__(self):
         self.env = None
-        self.memory = deque(maxlen=2000)
+        self.memory = deque(maxlen=50)
 
         self.gamma = 0.85
         self.epsilon = 1.0
@@ -29,15 +30,34 @@ class DQN:
         self.model = self.create_model()
         self.target_model = self.create_model()
 
+        print(self.model.summary())
+      
+        self._initpredict(self.model)
+        self._initpredict(self.target_model)
+
+    def _initpredict(self, model):
+        gamestate = np.zeros([11, 11])
+        gamestate = np.expand_dims(gamestate, axis=0)
+        gamestate = np.expand_dims(gamestate, axis=-1)
+        # print(gamestate.shape)
+    
+        gamestate = K.constant(gamestate)
+        model.predict_on_batch(x=gamestate)
+  
     def create_model(self):
         model = Sequential()
         # state_shape = self.env.observation_space.shape
         # model.add(Dense(24, input_dim=state_shape[0], activation="relu"))
-        model.add(Conv2D(filters=3, kernel_size=3, activation="relu", input_shape=(11, 11, 1), padding="same"))
-        model.add(Conv2D(filters=3, kernel_size=3, activation="relu", padding="same"))
+        model.add(Conv2D(filters=2, kernel_size=(3,3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        model.add(Conv2D(filters=2, kernel_size=(3,3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        model.add(Conv2D(filters=2, kernel_size=(3,3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        model.add(Conv2D(filters=2, kernel_size=(3,3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        model.add(Conv2D(filters=2, kernel_size=(3,3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        model.add(Conv2D(filters=2, kernel_size=(3,3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        model.add(Conv2D(filters=1, kernel_size=(3,3), activation="relu", input_shape=(11, 11, 1), padding="same"))
         model.add(Flatten())
-        model.add(Dense(24, activation="relu"))
-        model.add(Dense(12, activation="relu"))
+        #model.add(Dense(12, activation="relu"))
+        model.add(Dense(9, activation="relu"))
         model.add(Dense(3, activation="relu"))
         model.compile(loss="mean_squared_error",
                       optimizer=Adam(lr=self.learning_rate))
@@ -46,29 +66,37 @@ class DQN:
     def act(self, state):
         self.epsilon *= self.epsilon_decay
         self.epsilon = max(self.epsilon_min, self.epsilon)
-        if np.random.random() < self.epsilon:
-            return random.randint(0, 2)
-        res = self.model.predict(x=state)[0]  # get field 0 due to the output format [[ ... ]]
+        #if np.random.random() < self.epsilon:
+            #return random.randint(0, 2)
+        res = self.model.predict_on_batch(x=state)[0]  # get field 0 due to the output format [[ ... ]]
         return np.argmax(res)
 
     def remember(self, state, action, reward, new_state, done):
         self.memory.append([state, action, reward, new_state, done])
 
     def replay(self):
-        batch_size = 2
+        batch_size = 1
         if len(self.memory) < batch_size:
             return
 
+        
         samples = random.sample(self.memory, batch_size)
+        #return
         for sample in samples:
             state, action, reward, new_state, done = sample
-            target = self.target_model.predict(state)
+            target = self.target_model.predict_on_batch(state)
+            print("train")  
+            
+            
             if done:
                 target[0][action] = reward
             else:
-                Q_future = max(self.target_model.predict(new_state)[0])
+                Q_future = max(self.target_model.predict_on_batch(new_state)[0])
                 target[0][action] = reward + Q_future * self.gamma
-            self.model.fit(state, target, epochs=1, verbose=0)
+            print("train halfway " + str(len(samples)))
+            #return
+            target = K.constant(target)
+            self.model.fit(state, target, epochs=1, verbose=0, batch_size=None, shuffle=False)
 
     def target_train(self):
         weights = self.model.get_weights()
@@ -85,9 +113,11 @@ class DQN:
 
     def load_model(self, fn):
         self.model = keras.models.load_model(fn)
+        self._initpredict(self.model)
 
     def load_target_model(self, fn):
         self.target_model = keras.models.load_model(fn)
+        self._initpredict(self.target_model)
 
     def save_values(self, fn):
         input_dictionary = {"epsilon": self.epsilon}

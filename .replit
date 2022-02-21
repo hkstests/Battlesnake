@@ -1,2 +1,5 @@
 language = "python3"
 run = "python server.py"
+
+[packager]
+ignoredPackages=["tensorflow"]
