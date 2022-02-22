@@ -8,6 +8,7 @@ from classes.Snake import Snake
 from logic.enums.move import Move
 from logic.wrapped.DQN import DQN
 from logic.wrapped.Env import assemble_gamestate
+from logic.wrapped import heuristic
 from logic.wrapped.caches.SnakeCache import SnakeCache
 from logic.wrapped.caches.SnakeCaches import SnakeCaches
 import os
@@ -42,7 +43,9 @@ def handle_move(gamedata: GameData) -> string:
     # print(f"turn gamedata {gamedata.get_turn()} - turn first {first_turn}")
     if gamedata.get_turn() == first_turn:
         game_state = assemble_gamestate(gamedata)
+
         action = dqn.act(game_state)
+        # action = heuristic.handle_move(gamedata)
 
         # cache values
         snake_cache.set_gamestate(game_state)
@@ -69,6 +72,7 @@ def handle_move(gamedata: GameData) -> string:
         # dqn.train_long_memory()
 
     action = dqn.act(new_gamestate)
+    # action = heuristic.handle_move(gamedata)
 
     # cache values
     snake_cache.set_gamestate(new_gamestate)
@@ -93,7 +97,7 @@ def _get_reward(gamedata: GameData, snake_cache: SnakeCache) -> float:
         reward = 0.25
     if _has_my_snake_eaten(gamedata, snake_cache):
         print(f"{gamedata.get_my_snake().get_id()} : snake has eaten - add reward")
-        reward = 0.25
+        reward = 0.5
     if _has_my_snake_touched_hazard(gamedata, snake_cache):
         print(f"{gamedata.get_my_snake().get_id()} : snake touched hazard - decrease reward")
         reward = -0.1
@@ -133,11 +137,12 @@ def handle_end(gamedata: GameData):
     # rememer state and train
     dqn.remember(snake_cache.get_gamestate(), snake_cache.get_action(), reward, new_gamestate, done)
 
-    if is_local:
-        #dqn.train_short_memory(snake_cache.get_gamestate(), snake_cache.get_action(), reward, new_gamestate, done)
-        dqn.train_long_memory()
+    # if is_local:
+    #dqn.train_short_memory(snake_cache.get_gamestate(), snake_cache.get_action(), reward, new_gamestate, done)
+    # dqn.train_long_memory()
 
     if is_local and snake_caches.get_open_saves() == 1:
+        dqn.train_long_memory()
         print("SAVE MODEL AND VALUES")
         dqn.save_model("logic/wrapped/mymodel/model")
         dqn.save_values("logic/wrapped/mymodel/values.pickle")

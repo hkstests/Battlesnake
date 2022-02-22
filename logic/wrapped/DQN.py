@@ -22,15 +22,15 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 class DQN:
     def __init__(self):
         self.env = None
-        self.memory = deque(maxlen=50000)
+        self.memory = deque(maxlen=5000)
 
         # self.gamma = 0.85
         self.gamma = 0.9
         self.epsilon = 1.0
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.998
-        self.learning_rate = 0.005
-        # self.learning_rate = 0.05
+        # self.learning_rate = 0.005
+        self.learning_rate = 0.01
         # self.learning_rate = 0.1
         self.tau = .125
 
@@ -49,20 +49,18 @@ class DQN:
 
     def create_model(self):
         model = Sequential()
-        model.add(Conv2D(filters=3, kernel_size=(5, 5), activation="relu", input_shape=(11, 11, 3), padding="same"))
-        model.add(Conv2D(filters=3, kernel_size=(5, 5), activation="relu", input_shape=(11, 11, 3), padding="same"))
-        model.add(Conv2D(filters=3, kernel_size=(5, 5), activation="relu", input_shape=(11, 11, 3), padding="same"))
-        model.add(Conv2D(filters=3, kernel_size=(5, 5), activation="relu", input_shape=(11, 11, 3), padding="same"))
-        model.add(Conv2D(filters=3, kernel_size=(5, 5), activation="relu", input_shape=(11, 11, 3), padding="same"))
-        model.add(Conv2D(filters=1, kernel_size=(5, 5), activation="relu", input_shape=(11, 11, 3), padding="same"))
+        model.add(Conv2D(filters=64, strides=2, kernel_size=(5, 5), activation="relu", input_shape=(11, 11, 3)))
+        model.add(Conv2D(filters=128, strides=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 3)))
         # model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
         # model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
         # model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
         # model.add(Conv2D(filters=1, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
         model.add(Flatten())
-        model.add(Dense(12, activation="relu"))
-        model.add(Dense(12, activation="relu"))
-        model.add(Dense(6, activation="relu"))
+        # model.add(Dense(12, activation="relu"))
+        # model.add(Dense(64, activation="relu"))
+        # model.add(Dense(32, activation="relu"))
+        # model.add(Dense(16, activation="relu"))
+        # model.add(Dense(8, activation="relu"))
         model.add(Dense(3, activation="relu"))
         model.compile(loss="mean_squared_error",
                       optimizer=Adam(lr=self.learning_rate))
@@ -119,7 +117,7 @@ class DQN:
 
     def train_long_memory(self):
         # print("Train long mem")
-        batch_size = 800
+        batch_size = 500
         samples = []
         if len(self.memory) < batch_size:
             samples = self.memory
@@ -154,22 +152,6 @@ class DQN:
         self.model.fit(states, targets, epochs=1, verbose=0, batch_size=50)
 
         return
-
-        for sample in samples:
-            state, action, reward, new_state, done = sample
-
-            state_tensor = self._parse_state_to_tensor(state)
-            target = self.target_model.predict(state_tensor)
-
-            if done:
-                target[0][action] = reward
-            else:
-                new_state_tensor = self._parse_state_to_tensor(new_state)
-                Q_future = max(self.target_model.predict(new_state_tensor)[0])
-                target[0][action] = reward + Q_future * self.gamma
-            # parse target to tensor
-            # target = K.constant(target)
-            self.model.fit(self._extend_state(state), target, epochs=1, verbose=0)
 
     def save_model(self, fn):
         self.model.save(fn)
