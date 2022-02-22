@@ -12,14 +12,6 @@ class SnakeCaches:
         snake_cache = SnakeCache(id)
         self._snake_caches.append(snake_cache)
 
-    def remove_snake_cache(self, id: string):
-        idx = -1
-        for i in range(0, self._snake_caches.count):
-            if id == self._snake_caches[i].get_id():
-                idx = i
-        if idx != -1:
-            self._snake_caches.pop(idx)
-
     def get_snake_cache(self, id: string):
         for snake_cache in self._snake_caches:
             if snake_cache.get_id() == id:

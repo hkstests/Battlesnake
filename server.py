@@ -12,8 +12,9 @@ from flask import Flask
 import time
 import logging
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
-import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -68,8 +69,6 @@ def handle_move():
     data = request.get_json()
     gamedata = GameData(data)
 
-    # move = ""
-
     # if gamedata.is_royale_mode():
     #     move = royale.handle_move(gamedata)
     # elif gamedata.is_constrictor_mode():
@@ -80,15 +79,12 @@ def handle_move():
     #     move = squad.handle_move(gamedata)
     # else:
     #     move = standard.handle_move(gamedata)
-    # gamedata.print()
+
     start = time.time()
     move = wrapped.handle_move(gamedata)
     print(f"move turn : {gamedata.get_turn()} to {move}")
     end = time.time()
     print(f"execution duration : {end - start}")
-
-    # TODO - look at the server_logic.py file to see how we decide what move to return!
-    # move = server_logic.choose_move(data)
 
     return {"move": move}
 
@@ -107,7 +103,6 @@ def end():
     # handle end (e.g. wrapped.handle_end(gamedata))
 
     print(f"{data['game']['id']} END")
-    # print(data)
     print("----------------------------")
     print("----------------------------")
     return "ok"
@@ -133,9 +128,9 @@ if __name__ == "__main__":
 
     print("Starting Battlesnake Server...")
 
-    home = False
+    is_local = os.getenv('IS_LOCAL') == "True"
 
-    if home:
+    if is_local:
         port = int(os.environ.get("PORT", "8080"))
         app.run(host="0.0.0.0", port=port, debug=True)
     else:

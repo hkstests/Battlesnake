@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import random
 # from keras.models import Sequential
@@ -14,49 +15,54 @@ from tensorflow.keras import backend as K
 from collections import deque
 import pickle
 
+from dotenv import load_dotenv
+load_dotenv()
+
+is_local = os.getenv('IS_LOCAL') == "True"
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 
 class DQN:
     def __init__(self):
         self.env = None
-        self.memory = deque(maxlen=50)
+        self.memory = deque(maxlen=1000)
 
         self.gamma = 0.85
         self.epsilon = 1.0
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
+        self.epsilon_decay = 0.9985
         self.learning_rate = 0.005
         self.tau = .125
 
         self.model = self.create_model()
         self.target_model = self.create_model()
 
-        print(self.model.summary())
-      
         self._initpredict(self.model)
         self._initpredict(self.target_model)
 
     def _initpredict(self, model):
-        gamestate = np.zeros([11, 11])
-        gamestate = np.expand_dims(gamestate, axis=0)
-        gamestate = np.expand_dims(gamestate, axis=-1)
-        # print(gamestate.shape)
-    
-        gamestate = K.constant(gamestate)
-        model.predict_on_batch(x=gamestate)
-  
+        global is_local
+
+        temp_state = np.zeros([11, 11])
+        temp_state_tensor = self._parse_state_to_tensor(temp_state)
+
+        if is_local:
+            model.predict(x=temp_state_tensor)
+        else:
+            model.predict_on_batch(x=temp_state_tensor)
+
     def create_model(self):
         model = Sequential()
-        # state_shape = self.env.observation_space.shape
-        # model.add(Dense(24, input_dim=state_shape[0], activation="relu"))
-        model.add(Conv2D(filters=2, kernel_size=(3,3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        model.add(Conv2D(filters=2, kernel_size=(3,3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        model.add(Conv2D(filters=2, kernel_size=(3,3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        model.add(Conv2D(filters=2, kernel_size=(3,3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        model.add(Conv2D(filters=2, kernel_size=(3,3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        model.add(Conv2D(filters=2, kernel_size=(3,3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        model.add(Conv2D(filters=1, kernel_size=(3,3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        model.add(Conv2D(filters=1, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
         model.add(Flatten())
-        #model.add(Dense(12, activation="relu"))
         model.add(Dense(9, activation="relu"))
         model.add(Dense(3, activation="relu"))
         model.compile(loss="mean_squared_error",
@@ -64,39 +70,56 @@ class DQN:
         return model
 
     def act(self, state):
+        global is_local
         self.epsilon *= self.epsilon_decay
         self.epsilon = max(self.epsilon_min, self.epsilon)
-        #if np.random.random() < self.epsilon:
-            #return random.randint(0, 2)
-        res = self.model.predict_on_batch(x=state)[0]  # get field 0 due to the output format [[ ... ]]
+        if np.random.random() < self.epsilon:
+            return random.randint(0, 2)
+
+        state_tensor = self._parse_state_to_tensor(state)
+
+        if is_local:
+            res = self.model.predict(x=state_tensor)[0]  # get field 0 due to the output format [[ ... ]]
+        else:
+            res = self.model.predict_on_batch(x=state_tensor)[0]  # get field 0 due to the output format [[ ... ]]
         return np.argmax(res)
 
     def remember(self, state, action, reward, new_state, done):
         self.memory.append([state, action, reward, new_state, done])
 
+    def _parse_state_to_tensor(self, state):
+        # adapt shape so it fits to the model
+        state = self._extend_state(state)
+        # parse state to tensor for better performance
+        state = K.constant(state)
+        return state
+
+    def _extend_state(self, state):
+        state = np.expand_dims(state, axis=0)
+        state = np.expand_dims(state, axis=-1)
+        return state
+
     def replay(self):
-        batch_size = 1
+        batch_size = 120
         if len(self.memory) < batch_size:
             return
 
-        
         samples = random.sample(self.memory, batch_size)
-        #return
         for sample in samples:
             state, action, reward, new_state, done = sample
-            target = self.target_model.predict_on_batch(state)
-            print("train")  
-            
-            
+
+            state_tensor = self._parse_state_to_tensor(state)
+            target = self.target_model.predict(state_tensor)
+
             if done:
                 target[0][action] = reward
             else:
-                Q_future = max(self.target_model.predict_on_batch(new_state)[0])
+                new_state_tensor = self._parse_state_to_tensor(new_state)
+                Q_future = max(self.target_model.predict(new_state_tensor)[0])
                 target[0][action] = reward + Q_future * self.gamma
-            print("train halfway " + str(len(samples)))
-            #return
-            target = K.constant(target)
-            self.model.fit(state, target, epochs=1, verbose=0, batch_size=None, shuffle=False)
+            # parse target to tensor
+            # target = K.constant(target)
+            self.model.fit(self._extend_state(state), target, epochs=1, verbose=0)
 
     def target_train(self):
         weights = self.model.get_weights()

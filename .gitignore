@@ -3,3 +3,5 @@
 .cmd
 .idea
 .vscode
+.env
+local-game-engine
