@@ -10,15 +10,10 @@ from tensorflow.keras.layers import Dense, Dropout, Conv2D, Flatten
 from tensorflow.keras import Input
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Sequential
-from tensorflow.keras import backend as K
+import tensorflow as tf
 
 from collections import deque
 import pickle
-
-from dotenv import load_dotenv
-load_dotenv()
-
-is_local = os.getenv('IS_LOCAL') == "True"
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
@@ -43,15 +38,11 @@ class DQN:
         self._initpredict(self.target_model)
 
     def _initpredict(self, model):
-        global is_local
 
         temp_state = np.zeros([11, 11])
         temp_state_tensor = self._parse_state_to_tensor(temp_state)
 
-        if is_local:
-            model.predict(x=temp_state_tensor)
-        else:
-            model.predict_on_batch(x=temp_state_tensor)
+        model.predict(x=temp_state_tensor)
 
     def create_model(self):
         model = Sequential()
@@ -70,7 +61,7 @@ class DQN:
         return model
 
     def act(self, state):
-        global is_local
+
         self.epsilon *= self.epsilon_decay
         self.epsilon = max(self.epsilon_min, self.epsilon)
         if np.random.random() < self.epsilon:
@@ -78,10 +69,7 @@ class DQN:
 
         state_tensor = self._parse_state_to_tensor(state)
 
-        if is_local:
-            res = self.model.predict(x=state_tensor)[0]  # get field 0 due to the output format [[ ... ]]
-        else:
-            res = self.model.predict_on_batch(x=state_tensor)[0]  # get field 0 due to the output format [[ ... ]]
+        res = self.model.predict(x=state_tensor)[0]  # get field 0 due to the output format [[ ... ]]
         return np.argmax(res)
 
     def remember(self, state, action, reward, new_state, done):
@@ -91,7 +79,7 @@ class DQN:
         # adapt shape so it fits to the model
         state = self._extend_state(state)
         # parse state to tensor for better performance
-        state = K.constant(state)
+        state = tf.constant(state)
         return state
 
     def _extend_state(self, state):
