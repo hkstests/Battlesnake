@@ -134,7 +134,7 @@ def handle_end(gamedata: GameData):
         dqn.replay()
         dqn.target_train()
 
-    if snake_caches.get_open_saves() == 1:
+    if is_local and snake_caches.get_open_saves() == 1:
         print("SAVE MODEL AND VALUES")
         dqn.save_model("logic/wrapped/mymodel/model")
         dqn.save_target_model("logic/wrapped/mymodel/target-model")
