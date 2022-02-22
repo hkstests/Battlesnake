@@ -22,40 +22,45 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 class DQN:
     def __init__(self):
         self.env = None
-        self.memory = deque(maxlen=2000)
+        self.memory = deque(maxlen=50000)
 
-        self.gamma = 0.85
+        # self.gamma = 0.85
+        self.gamma = 0.9
         self.epsilon = 1.0
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.9985
+        self.epsilon_decay = 0.998
         self.learning_rate = 0.005
+        # self.learning_rate = 0.05
+        # self.learning_rate = 0.1
         self.tau = .125
 
         self.model = self.create_model()
-        self.target_model = self.create_model()
 
         print(self.model.summary())
 
         self._initpredict(self.model)
-        self._initpredict(self.target_model)
 
     def _initpredict(self, model):
 
-        temp_state = np.zeros([11, 11])
+        temp_state = np.zeros([11, 11, 3])
         temp_state_tensor = self._parse_state_to_tensor(temp_state)
 
         model.predict(x=temp_state_tensor)
 
     def create_model(self):
         model = Sequential()
-        model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        model.add(Conv2D(filters=3, kernel_size=(5, 5), activation="relu", input_shape=(11, 11, 3), padding="same"))
+        model.add(Conv2D(filters=3, kernel_size=(5, 5), activation="relu", input_shape=(11, 11, 3), padding="same"))
+        model.add(Conv2D(filters=3, kernel_size=(5, 5), activation="relu", input_shape=(11, 11, 3), padding="same"))
+        model.add(Conv2D(filters=3, kernel_size=(5, 5), activation="relu", input_shape=(11, 11, 3), padding="same"))
+        model.add(Conv2D(filters=3, kernel_size=(5, 5), activation="relu", input_shape=(11, 11, 3), padding="same"))
+        model.add(Conv2D(filters=1, kernel_size=(5, 5), activation="relu", input_shape=(11, 11, 3), padding="same"))
         # model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
         # model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
         # model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        # model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        # model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        model.add(Conv2D(filters=1, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        # model.add(Conv2D(filters=1, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
         model.add(Flatten())
+        model.add(Dense(12, activation="relu"))
         model.add(Dense(12, activation="relu"))
         model.add(Dense(6, activation="relu"))
         model.add(Dense(3, activation="relu"))
@@ -90,12 +95,66 @@ class DQN:
         state = np.expand_dims(state, axis=-1)
         return state
 
-    def replay(self):
-        batch_size = 120
-        if len(self.memory) < batch_size:
-            return
+    def _extend_state_right(self, state):
+        state = np.expand_dims(state, axis=-1)
+        return state
 
-        samples = random.sample(self.memory, batch_size)
+    def _extend_state_left(self, state):
+        state = np.expand_dims(state, axis=0)
+        return state
+
+    def train_short_memory(self, state, action, reward, new_state, done):
+        # print("Train short mem")
+        state_tensor = self._parse_state_to_tensor(state)
+        new_state_tensor = self._parse_state_to_tensor(new_state)
+
+        target = self.model.predict(state_tensor)
+        if done:
+            target[0][action] = reward
+        else:
+            Q_future = max(self.model.predict(new_state_tensor)[0])
+            target[0][action] = reward + Q_future * self.gamma
+
+        self.model.fit(self._extend_state(state), target, epochs=1, verbose=0)
+
+    def train_long_memory(self):
+        # print("Train long mem")
+        batch_size = 800
+        samples = []
+        if len(self.memory) < batch_size:
+            samples = self.memory
+        else:
+            samples = random.sample(self.memory, batch_size)
+
+        states, actions, rewards, new_states, dones = zip(*samples)
+        states = np.asarray(states)
+        actions = np.asarray(actions)
+        rewards = np.asarray(rewards)
+        new_states = np.asarray(new_states)
+        dones = np.asarray(dones)
+
+        states = np.array([self._extend_state_right(xi) for xi in states])
+        new_states = np.array([self._extend_state_right(xi) for xi in new_states])
+
+        targets = []
+        for idx in range(len(states)):
+            state = self._extend_state_left(states[idx])
+            target = self.model.predict(state)
+            targets.append(target)
+
+        targets = np.array(targets)
+
+        for idx in range(len(dones)):
+            targets[idx][0][actions[idx]] = rewards[idx]
+            if not dones[idx]:
+                new_state = self._extend_state_left(new_states[idx])
+                Q_future = max(self.model.predict(new_state)[0])
+                targets[idx][0][actions[idx]] = rewards[idx] + Q_future * self.gamma
+
+        self.model.fit(states, targets, epochs=1, verbose=0, batch_size=50)
+
+        return
+
         for sample in samples:
             state, action, reward, new_state, done = sample
 
@@ -112,29 +171,17 @@ class DQN:
             # target = K.constant(target)
             self.model.fit(self._extend_state(state), target, epochs=1, verbose=0)
 
-    def target_train(self):
-        weights = self.model.get_weights()
-        target_weights = self.target_model.get_weights()
-        for i in range(len(target_weights)):
-            target_weights[i] = weights[i] * self.tau + target_weights[i] * (1 - self.tau)
-        self.target_model.set_weights(target_weights)
-
     def save_model(self, fn):
         self.model.save(fn)
-
-    def save_target_model(self, fn):
-        self.target_model.save(fn)
 
     def load_model(self, fn):
         self.model = keras.models.load_model(fn)
         self._initpredict(self.model)
 
-    def load_target_model(self, fn):
-        self.target_model = keras.models.load_model(fn)
-        self._initpredict(self.target_model)
-
     def save_values(self, fn):
-        input_dictionary = {"epsilon": self.epsilon}
+        input_dictionary = {"epsilon": self.epsilon, "memory": self.memory}
+        print(f"loaded epsilon {self.epsilon}")
+        print(f"memory length {len(self.memory)}")
         with open(fn, 'wb') as handle:
             pickle.dump(input_dictionary, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -142,4 +189,6 @@ class DQN:
         with open(fn, 'rb') as f:
             dict = pickle.load(f)
             self.epsilon = dict["epsilon"]
+            self.memory = dict["memory"]
             print(f"loaded epsilon {self.epsilon}")
+            print(f"memory length {len(self.memory)}")

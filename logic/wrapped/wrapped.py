@@ -21,7 +21,6 @@ dqn = DQN()
 if os.path.isdir("logic/wrapped/mymodel"):
     print("load models")
     dqn.load_model("logic/wrapped/mymodel/model")
-    dqn.load_target_model("logic/wrapped/mymodel/target-model")
     dqn.load_values("logic/wrapped/mymodel/values.pickle")
 
 # will be reset in prepare function - see below
@@ -63,10 +62,11 @@ def handle_move(gamedata: GameData) -> string:
     # if np.random.random() < 0.55:
     dqn.remember(snake_cache.get_gamestate(), snake_cache.get_action(), reward, new_gamestate, done)
 
-    if is_local and latest_trained_turn <= gamedata.get_turn():
-        latest_trained_turn = gamedata.get_turn() + 1
-        dqn.replay()
-        dqn.target_train()
+    if is_local:  # and latest_trained_turn <= gamedata.get_turn():
+        # print(f"enemy snakes old {len(snake_cache.get_gamedata().get_enemy_snakes())} vs new {len(gamedata.get_enemy_snakes())}")
+        #latest_trained_turn = gamedata.get_turn() + 1
+        dqn.train_short_memory(snake_cache.get_gamestate(), snake_cache.get_action(), reward, new_gamestate, done)
+        # dqn.train_long_memory()
 
     action = dqn.act(new_gamestate)
 
@@ -79,21 +79,24 @@ def handle_move(gamedata: GameData) -> string:
 
 
 def _get_reward(gamedata: GameData, snake_cache: SnakeCache) -> float:
-    reward = 0
+    reward = 0.002
     # TODO set good reward parameters
     if gamedata.is_game_over():
         if gamedata.has_my_snake_won():
             print(f"snake {gamedata.get_my_snake().get_id()} has won")
-            return 20
+            return 1
         else:
             print(f"snake {gamedata.get_my_snake().get_id()} has lost")
-            return -20
+            return -1
     if _has_enemy_snake_died(gamedata, snake_cache):
-        reward = 10
+        print(f"{gamedata.get_my_snake().get_id()} : other snake died - add reward")
+        reward = 0.25
     if _has_my_snake_eaten(gamedata, snake_cache):
-        reward = 7
+        print(f"{gamedata.get_my_snake().get_id()} : snake has eaten - add reward")
+        reward = 0.25
     if _has_my_snake_touched_hazard(gamedata, snake_cache):
-        reward = -1
+        print(f"{gamedata.get_my_snake().get_id()} : snake touched hazard - decrease reward")
+        reward = -0.1
     return reward
 
 
@@ -104,7 +107,7 @@ def _has_enemy_snake_died(gamedata: GameData, snake_cache: SnakeCache):
 
 def _has_my_snake_eaten(gamedata: GameData, snake_cache: SnakeCache):
     # compare health of my snake to the previous gamestate. if it increased, my snake must have eaten then
-    return snake_cache.get_gamedata().get_my_snake().get_health() > gamedata.get_my_snake().get_health()
+    return snake_cache.get_gamedata().get_my_snake().get_health() < gamedata.get_my_snake().get_health()
 
 
 def _has_my_snake_touched_hazard(gamedata: GameData, snake_cache: SnakeCache):
@@ -123,7 +126,7 @@ def handle_end(gamedata: GameData):
         return
 
     # values of new state does not matter since it is not used during the calculation anyway
-    new_gamestate = np.zeros([0, 0])
+    new_gamestate = np.zeros([gamedata.get_board_width(), gamedata.get_board_height(), 3])
     reward = _get_reward(gamedata, snake_cache)
     done = True
 
@@ -131,13 +134,12 @@ def handle_end(gamedata: GameData):
     dqn.remember(snake_cache.get_gamestate(), snake_cache.get_action(), reward, new_gamestate, done)
 
     if is_local:
-        dqn.replay()
-        dqn.target_train()
+        #dqn.train_short_memory(snake_cache.get_gamestate(), snake_cache.get_action(), reward, new_gamestate, done)
+        dqn.train_long_memory()
 
     if is_local and snake_caches.get_open_saves() == 1:
         print("SAVE MODEL AND VALUES")
         dqn.save_model("logic/wrapped/mymodel/model")
-        dqn.save_target_model("logic/wrapped/mymodel/target-model")
         dqn.save_values("logic/wrapped/mymodel/values.pickle")
 
     snake_cache.set_open_save(False)
@@ -161,7 +163,6 @@ def prepare(gamedata: GameData):
     if gamedata.get_id() != snake_caches.get_game_id():
         snake_caches = SnakeCaches(gamedata.get_id())
         dqn._initpredict(dqn.model)
-        dqn._initpredict(dqn.target_model)
 
     # add one snake cache for the current snake
     snake_caches.add_snake_cache(gamedata.get_my_snake().get_id())
