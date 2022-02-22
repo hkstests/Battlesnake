@@ -34,6 +34,8 @@ class DQN:
         self.model = self.create_model()
         self.target_model = self.create_model()
 
+        print(self.model.summary())
+
         self._initpredict(self.model)
         self._initpredict(self.target_model)
 
@@ -47,14 +49,14 @@ class DQN:
     def create_model(self):
         model = Sequential()
         model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        # model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        # model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        # model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        # model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        # model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
         model.add(Conv2D(filters=1, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
         model.add(Flatten())
-        model.add(Dense(9, activation="relu"))
+        model.add(Dense(12, activation="relu"))
         model.add(Dense(3, activation="relu"))
         model.compile(loss="mean_squared_error",
                       optimizer=Adam(lr=self.learning_rate))

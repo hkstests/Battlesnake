@@ -79,7 +79,7 @@ def handle_move(gamedata: GameData) -> string:
 
 
 def _get_reward(gamedata: GameData, snake_cache: SnakeCache) -> float:
-    reward = -0.75
+    reward = 0
     # TODO set good reward parameters
     if gamedata.is_game_over():
         if gamedata.has_my_snake_won():
