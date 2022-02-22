@@ -22,7 +22,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 class DQN:
     def __init__(self):
         self.env = None
-        self.memory = deque(maxlen=1000)
+        self.memory = deque(maxlen=2000)
 
         self.gamma = 0.85
         self.epsilon = 1.0
@@ -57,6 +57,7 @@ class DQN:
         model.add(Conv2D(filters=1, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
         model.add(Flatten())
         model.add(Dense(12, activation="relu"))
+        model.add(Dense(6, activation="relu"))
         model.add(Dense(3, activation="relu"))
         model.compile(loss="mean_squared_error",
                       optimizer=Adam(lr=self.learning_rate))
