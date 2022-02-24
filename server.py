@@ -81,13 +81,17 @@ def handle_move():
     # else:
     #     move = standard.handle_move(gamedata)
 
-    # start = time.time()
+    start = time.time()
     # move = wrapped.handle_move(gamedata)
     # print(f"move turn : {gamedata.get_turn()} to {move}")
-    # end = time.time()
-    # print(f"execution duration : {end - start}")
 
+    # print(f"execution duration : {end - start}")
+    # start = time.time()
     move = wrapped.handle_move(gamedata)
+    end = time.time()
+    print(f"move turn : {gamedata.get_turn()} to {move}")
+    print(f"execution duration : {end - start}")
+    print("-----------")
     return {"move": move}
 
 
