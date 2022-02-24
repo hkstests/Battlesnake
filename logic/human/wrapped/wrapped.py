@@ -29,7 +29,7 @@ def handle_move(gamedata: GameData) -> string:
         return handle_return_move(collision_free_actions[0].get_move())
 
     # get hazard free actions
-    hazard_free_actions = get_hazard_free_actions(gamedata, possible_actions)
+    hazard_free_actions = get_hazard_free_actions(gamedata, collision_free_actions)
 
     # if there is only one way to prevent a hazard, simply go it
     if len(hazard_free_actions) == 1:  # TODO weakness, since a way through the hazard field is not considered as potentually better
