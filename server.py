@@ -1,10 +1,11 @@
 import threading
 import server_logic
-from logic import constrictor
-from logic import royale
-from logic import squad
-from logic import standard
-from logic.wrapped import wrapped
+# from logic import constrictor
+# from logic import royale
+# from logic import squad
+# from logic import standard
+# from logic.wrapped import wrapped
+from logic.human.wrapped import wrapped
 from threading import Thread
 from classes.GameData import GameData
 from flask import request
@@ -53,7 +54,7 @@ def handle_start():
     gamedata = GameData(data)
 
     # prepare wrapped game
-    wrapped.prepare(gamedata)
+    # wrapped.prepare(gamedata)
 
     # gamedata.get_f
     print(f"{data['game']['id']} START")
@@ -80,12 +81,13 @@ def handle_move():
     # else:
     #     move = standard.handle_move(gamedata)
 
-    start = time.time()
-    move = wrapped.handle_move(gamedata)
-    print(f"move turn : {gamedata.get_turn()} to {move}")
-    end = time.time()
-    print(f"execution duration : {end - start}")
+    # start = time.time()
+    # move = wrapped.handle_move(gamedata)
+    # print(f"move turn : {gamedata.get_turn()} to {move}")
+    # end = time.time()
+    # print(f"execution duration : {end - start}")
 
+    move = wrapped.handle_move(gamedata)
     return {"move": move}
 
 
@@ -98,7 +100,7 @@ def end():
     data = request.get_json()
     gamedata = GameData(data)
 
-    wrapped.handle_end(gamedata)
+    # wrapped.handle_end(gamedata)
 
     # handle end (e.g. wrapped.handle_end(gamedata))
 

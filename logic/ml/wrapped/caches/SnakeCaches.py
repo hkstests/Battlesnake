@@ -1,6 +1,6 @@
 import string
 from typing import List
-from logic.wrapped.caches.SnakeCache import SnakeCache
+from logic.ml.wrapped.caches.SnakeCache import SnakeCache
 
 
 class SnakeCaches:

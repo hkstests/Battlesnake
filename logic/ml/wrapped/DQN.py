@@ -1,10 +1,6 @@
 import os
 import numpy as np
 import random
-# from keras.models import Sequential
-# from keras.layers import Dense, Dropout
-# from keras.optimizers import Adam
-
 from tensorflow import keras
 from tensorflow.keras.layers import Dense, Dropout, Conv2D, Flatten
 from tensorflow.keras import Input
@@ -24,14 +20,11 @@ class DQN:
         self.env = None
         self.memory = deque(maxlen=5000)
 
-        # self.gamma = 0.85
-        self.gamma = 0.9
+        self.gamma = 0.95
         self.epsilon = 1.0
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.998
-        # self.learning_rate = 0.005
         self.learning_rate = 0.01
-        # self.learning_rate = 0.1
         self.tau = .125
 
         self.model = self.create_model()
@@ -41,7 +34,7 @@ class DQN:
         self._initpredict(self.model)
 
     def _initpredict(self, model):
-
+        # do that when you start the program (predict seems to need to do some setup stuff during the first call)
         temp_state = np.zeros([11, 11, 3])
         temp_state_tensor = self._parse_state_to_tensor(temp_state)
 
@@ -50,17 +43,8 @@ class DQN:
     def create_model(self):
         model = Sequential()
         model.add(Conv2D(filters=64, strides=2, kernel_size=(5, 5), activation="relu", input_shape=(11, 11, 3)))
-        model.add(Conv2D(filters=128, strides=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 3)))
-        # model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        # model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        # model.add(Conv2D(filters=2, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
-        # model.add(Conv2D(filters=1, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 1), padding="same"))
+        model.add(Conv2D(filters=64, kernel_size=(3, 3), activation="relu", input_shape=(11, 11, 3)))
         model.add(Flatten())
-        # model.add(Dense(12, activation="relu"))
-        # model.add(Dense(64, activation="relu"))
-        # model.add(Dense(32, activation="relu"))
-        # model.add(Dense(16, activation="relu"))
-        # model.add(Dense(8, activation="relu"))
         model.add(Dense(3, activation="relu"))
         model.compile(loss="mean_squared_error",
                       optimizer=Adam(lr=self.learning_rate))
@@ -102,7 +86,6 @@ class DQN:
         return state
 
     def train_short_memory(self, state, action, reward, new_state, done):
-        # print("Train short mem")
         state_tensor = self._parse_state_to_tensor(state)
         new_state_tensor = self._parse_state_to_tensor(new_state)
 
@@ -116,7 +99,6 @@ class DQN:
         self.model.fit(self._extend_state(state), target, epochs=1, verbose=0)
 
     def train_long_memory(self):
-        # print("Train long mem")
         batch_size = 500
         samples = []
         if len(self.memory) < batch_size:
@@ -150,8 +132,6 @@ class DQN:
                 targets[idx][0][actions[idx]] = rewards[idx] + Q_future * self.gamma
 
         self.model.fit(states, targets, epochs=1, verbose=0, batch_size=50)
-
-        return
 
     def save_model(self, fn):
         self.model.save(fn)
