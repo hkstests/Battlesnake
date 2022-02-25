@@ -8,12 +8,7 @@ from logic.human.Action import Action
 from logic.enums.move import Move
 
 
-previous_move: Move = Move.left
-
-
 def handle_move(gamedata: GameData) -> string:
-    global previous_move
-
     # get actions left, right, up, down with their respective position (with respect to the head position)
     possible_actions = get_initial_actions(gamedata)
 
@@ -22,36 +17,42 @@ def handle_move(gamedata: GameData) -> string:
 
     # just go left if you'd die anyway due to collision
     if len(collision_free_actions) == 0:
-        return handle_return_move(Move.left)
+        return Move.left.value
 
     # if only one move is possible, simply do it
     if len(collision_free_actions) == 1:
-        return handle_return_move(collision_free_actions[0].get_move())
+        return collision_free_actions[0].get_move().value
+
+    last_selection_actions = collision_free_actions
+
+    headless_free_actions = get_head_collision_save_actions(gamedata, collision_free_actions)
+
+    if len(headless_free_actions) == 1:
+        return headless_free_actions[0].get_move().value
+    elif len(headless_free_actions) >= 2:
+        last_selection_actions = headless_free_actions
 
     # get hazard free actions
-    hazard_free_actions = get_hazard_free_actions(gamedata, collision_free_actions)
+    hazard_free_actions = get_hazard_free_actions(gamedata, last_selection_actions)
 
     # if there is only one way to prevent a hazard, simply go it
     if len(hazard_free_actions) == 1:  # TODO weakness, since a way through the hazard field is not considered as potentually better
-        return handle_return_move(hazard_free_actions[0].get_move())
+        return hazard_free_actions[0].get_move().value
 
-    last_selection_actions = hazard_free_actions
-
-    if len(hazard_free_actions) == 0:  # TODO another weakness, since the snake immediately tries to escape the hazard. It might be better to simply go straight through it
+    elif len(hazard_free_actions) == 0:  # TODO another weakness, since the snake immediately tries to escape the hazard. It might be better to simply go straight through it
         # Note : escape actions will contain always more than 0 actions, since collision_free_actions has at least 2 actions
         # at this point due to the previous if clauses
-        escape_actions = get_escape_actions(collision_free_actions)
+
+        escape_actions = get_hazard_escape_actions(gamedata, gamedata.get_hazard_positions(), last_selection_actions)
 
         # if there is only one direction to escape the hazards, simply go it
         if len(escape_actions) == 1:
-            return handle_return_move(escape_actions[0].get_move())
+            return escape_actions[0].get_move().value
 
         last_selection_actions = escape_actions
 
-    # prevent head to head collision
-    headless_free_actions = get_head_collision_save_actions(gamedata, last_selection_actions)
-    if len(headless_free_actions) != 0:
-        last_selection_actions = headless_free_actions
+    else:
+        last_selection_actions = hazard_free_actions
 
     # get food maps
     food_maps = get_food_maps(gamedata)
@@ -68,10 +69,10 @@ def handle_move(gamedata: GameData) -> string:
                 min_cost = cost
                 best_move_idx = j
 
-    return handle_return_move(last_selection_actions[best_move_idx].get_move())
+    return last_selection_actions[best_move_idx].get_move().value
 
 
-def get_head_collision_save_actions(gamedata: GameData, actions: List[Action]):
+def get_head_collision_save_actions(gamedata: GameData, actions: List[Action]) -> List[Action]:
     head_collision_free_actions = []
     for action in actions:
         if is_action_head_collision_save(gamedata, action):
@@ -90,12 +91,6 @@ def is_action_head_collision_save(gamedata: GameData, action: Action):
         if is_horizontal_next or is_vertical_next:
             return len(enemy_snake.get_body_positions()) < len(gamedata.get_my_snake().get_body_positions())
     return True
-
-
-def handle_return_move(move: Move) -> string:
-    global previous_move
-    previous_move = move
-    return move.value
 
 
 def get_initial_actions(gamedata: GameData) -> List[dict]:
@@ -185,17 +180,6 @@ def collides_with_snake(snake: Snake, new_position: dict):
             return True
 
 
-def get_escape_actions(actions: List[Action]) -> List[Action]:
-    global previous_move
-
-    escape_actions = []
-    for action in actions:
-        if action.get_move().value != previous_move.value:
-            escape_actions.append(action)
-
-    return escape_actions
-
-
 def get_food_maps(gamedata: GameData):
     food_maps = []
     for food_position in gamedata.get_food_positions():
@@ -223,6 +207,60 @@ def get_food_map(gamedata: GameData, food_position: dict):
 
     board[food_position["x"], food_position["y"]] = 0
 
+    compute_distance_board(board, unvisited, invalid)
+
+    return board
+
+
+def get_hazard_escape_actions(gamedata: GameData, hazard_positions: List[dict], actions: List[Action]):
+    hazard_distance_board = get_hazard_distance_board(gamedata, hazard_positions)
+
+    min_distance = 10000
+    for action in actions:
+        distance = hazard_distance_board[action.get_position()["x"], action.get_position()["y"]]
+        if distance < min_distance:
+            min_distance = distance
+
+    hazard_escape_actions = []
+    for action in actions:
+        distance = hazard_distance_board[action.get_position()["x"], action.get_position()["y"]]
+        if distance == min_distance:
+            hazard_escape_actions.append(action)
+
+    return hazard_escape_actions
+
+
+def get_hazard_distance_board(gamedata: GameData, hazard_positions: List[dict]):
+    invalid = 1000
+    unvisited = 999
+
+    board_width = gamedata.get_board_width()
+    board_height = gamedata.get_board_height()
+
+    board = np.ones([board_width, board_height])
+    board *= unvisited
+
+    for i in range(board_width):
+        for j in range(board_height):
+            is_hazard = False
+            for hazard_position in hazard_positions:
+                if i == hazard_position["x"] and j == hazard_position["y"]:
+                    is_hazard = True
+            if not is_hazard:
+                board[i, j] = 0
+
+    for position in gamedata.get_my_snake().get_body_positions():
+        board[position["x"], position["y"]] = invalid
+
+    for enemy_snake in gamedata.get_enemy_snakes():
+        for position in enemy_snake.get_body_positions():
+            board[position["x"], position["y"]] = invalid
+
+
+def compute_distance_board(board, unvisited: float, invalid: float):
+    board_width = board.shape[0]
+    board_height = board.shape[1]
+
     changed = True
     while changed:
         changed = False
@@ -246,5 +284,3 @@ def get_food_map(gamedata: GameData, food_position: dict):
                 if min_value != invalid:
                     board[x, y] = min_value + 1
                     changed = True
-
-    return board
