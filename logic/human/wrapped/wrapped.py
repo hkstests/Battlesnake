@@ -12,8 +12,11 @@ def handle_move(gamedata: GameData) -> string:
     # get actions left, right, up, down with their respective position (with respect to the head position)
     possible_actions = get_initial_actions(gamedata)
 
+    print(f"possible_actions {len(possible_actions)}")
+
     # remove actions that would lead to a collision (with itself or other snakes)
     collision_free_actions = get_collision_free_actions(gamedata, possible_actions)
+    print(f"collision_free_actions {len(collision_free_actions)}")
 
     # just go left if you'd die anyway due to collision
     if len(collision_free_actions) == 0:
@@ -26,7 +29,7 @@ def handle_move(gamedata: GameData) -> string:
     last_selection_actions = collision_free_actions
 
     headless_free_actions = get_head_collision_save_actions(gamedata, last_selection_actions)
-
+    print(f"headless_free_actions {len(headless_free_actions)}")
     if len(headless_free_actions) == 1:
         return headless_free_actions[0].get_move().value
     elif len(headless_free_actions) >= 2:
@@ -34,6 +37,7 @@ def handle_move(gamedata: GameData) -> string:
 
     # get hazard free actions
     hazard_free_actions = get_hazard_free_actions(gamedata, last_selection_actions)
+    print(f"hazard_free_actions {len(hazard_free_actions)}")
 
     # if there is only one way to prevent a hazard, simply go it
     if len(hazard_free_actions) == 1:  # TODO weakness, since a way through the hazard field is not considered as potentually better
@@ -44,6 +48,7 @@ def handle_move(gamedata: GameData) -> string:
         # at this point due to the previous if clauses
 
         escape_actions = get_hazard_escape_actions(gamedata, gamedata.get_hazard_positions(), last_selection_actions)
+        print(f"escape_actions {len(escape_actions)}")
 
         # if there is only one direction to escape the hazards, simply go it
         if len(escape_actions) == 1:
@@ -178,6 +183,7 @@ def collides_with_snake(snake: Snake, new_position: dict):
     for position in snake.get_body_positions():
         if position["x"] == new_position["x"] and position["y"] == new_position["y"]:
             return True
+    return False
 
 
 def get_food_maps(gamedata: GameData):
