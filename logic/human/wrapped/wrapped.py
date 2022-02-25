@@ -25,7 +25,7 @@ def handle_move(gamedata: GameData) -> string:
 
     last_selection_actions = collision_free_actions
 
-    headless_free_actions = get_head_collision_save_actions(gamedata, collision_free_actions)
+    headless_free_actions = get_head_collision_save_actions(gamedata, last_selection_actions)
 
     if len(headless_free_actions) == 1:
         return headless_free_actions[0].get_move().value
@@ -255,6 +255,8 @@ def get_hazard_distance_board(gamedata: GameData, hazard_positions: List[dict]):
     for enemy_snake in gamedata.get_enemy_snakes():
         for position in enemy_snake.get_body_positions():
             board[position["x"], position["y"]] = invalid
+
+    return board
 
 
 def compute_distance_board(board, unvisited: float, invalid: float):
