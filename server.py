@@ -16,8 +16,8 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 app = Flask(__name__)
@@ -67,6 +67,7 @@ def handle_move():
     This function is called on every turn of a game. It's how your snake decides where to move.
     Valid moves are "up", "down", "left", or "right".
     """
+    print("start move prediction")
     data = request.get_json()
     gamedata = GameData(data)
 
@@ -80,7 +81,7 @@ def handle_move():
     #     move = squad.handle_move(gamedata)
     # else:
     #     move = standard.handle_move(gamedata)
-
+    
     start = time.time()
     # move = wrapped.handle_move(gamedata)
     # print(f"move turn : {gamedata.get_turn()} to {move}")
@@ -121,6 +122,7 @@ def identify_server(response):
 
 
 def keep_alive():
+    print("start presistent mode")
     server = Thread(target=run)
     server.start()
 
