@@ -60,8 +60,22 @@ def handle_move(gamedata: GameData) -> string:
     else:
         last_selection_actions = hazard_free_actions
 
+    # get food positions outside of hazards
+    food_positions = []
+    for food_position in gamedata.get_food_positions():
+        is_food_in_hazard = False
+        for hazard_position in gamedata.get_hazard_positions():
+            if food_position["x"] == hazard_position["x"] and food_position["y"] == hazard_position["y"]:
+                is_food_in_hazard = True
+                break
+        if not is_food_in_hazard:
+            food_positions.append(food_position)
+
+    if len(food_positions) == 0:
+        food_positions = gamedata.get_food_positions()
+
     # get food maps
-    food_maps = get_food_maps(gamedata)
+    food_maps = get_food_maps(gamedata, food_positions)
 
     best_move_idx = 0
     min_cost = 10000
@@ -189,9 +203,10 @@ def collides_with_snake(snake: Snake, new_position: dict):
     return False
 
 
-def get_food_maps(gamedata: GameData):
+def get_food_maps(gamedata: GameData, food_positions):
     food_maps = []
-    for food_position in gamedata.get_food_positions():
+
+    for food_position in food_positions:
         food_map = get_food_map(gamedata, food_position)
         food_maps.append(food_map)
     return food_maps
@@ -213,6 +228,9 @@ def get_food_map(gamedata: GameData, food_position: dict):
     for enemy_snake in gamedata.get_enemy_snakes():
         for position in enemy_snake.get_body_positions():
             board[position["x"], position["y"]] = invalid
+
+    for position in gamedata.get_hazard_positions():
+        board[position["x"], position["y"]] = invalid
 
     board[food_position["x"], food_position["y"]] = 0
 
