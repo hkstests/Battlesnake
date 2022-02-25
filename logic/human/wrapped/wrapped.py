@@ -1,3 +1,4 @@
+from math import floor
 import string
 from typing import List
 
@@ -12,11 +13,11 @@ def handle_move(gamedata: GameData) -> string:
     # get actions left, right, up, down with their respective position (with respect to the head position)
     possible_actions = get_initial_actions(gamedata)
 
-    print(f"possible_actions {len(possible_actions)}")
+    # print(f"possible_actions {len(possible_actions)}")
 
     # remove actions that would lead to a collision (with itself or other snakes)
     collision_free_actions = get_collision_free_actions(gamedata, possible_actions)
-    print(f"collision_free_actions {len(collision_free_actions)}")
+    # print(f"collision_free_actions {len(collision_free_actions)}")
 
     # just go left if you'd die anyway due to collision
     if len(collision_free_actions) == 0:
@@ -29,7 +30,7 @@ def handle_move(gamedata: GameData) -> string:
     last_selection_actions = collision_free_actions
 
     headless_free_actions = get_head_collision_save_actions(gamedata, last_selection_actions)
-    print(f"headless_free_actions {len(headless_free_actions)}")
+    # print(f"headless_free_actions {len(headless_free_actions)}")
     if len(headless_free_actions) == 1:
         return headless_free_actions[0].get_move().value
     elif len(headless_free_actions) >= 2:
@@ -37,7 +38,7 @@ def handle_move(gamedata: GameData) -> string:
 
     # get hazard free actions
     hazard_free_actions = get_hazard_free_actions(gamedata, last_selection_actions)
-    print(f"hazard_free_actions {len(hazard_free_actions)}")
+    # print(f"hazard_free_actions {len(hazard_free_actions)}")
 
     # if there is only one way to prevent a hazard, simply go it
     if len(hazard_free_actions) == 1:  # TODO weakness, since a way through the hazard field is not considered as potentually better
@@ -48,7 +49,7 @@ def handle_move(gamedata: GameData) -> string:
         # at this point due to the previous if clauses
 
         escape_actions = get_hazard_escape_actions(gamedata, gamedata.get_hazard_positions(), last_selection_actions)
-        print(f"escape_actions {len(escape_actions)}")
+        # print(f"escape_actions {len(escape_actions)}")
 
         # if there is only one direction to escape the hazards, simply go it
         if len(escape_actions) == 1:
@@ -64,6 +65,8 @@ def handle_move(gamedata: GameData) -> string:
 
     best_move_idx = 0
     min_cost = 10000
+
+    # print(food_maps[0])
 
     for i in range(len(food_maps)):
         food_map = food_maps[i]
@@ -213,7 +216,7 @@ def get_food_map(gamedata: GameData, food_position: dict):
 
     board[food_position["x"], food_position["y"]] = 0
 
-    compute_distance_board(board, unvisited, invalid)
+    compute_food_distance_board(board, food_position, unvisited, invalid)
 
     return board
 
@@ -262,10 +265,69 @@ def get_hazard_distance_board(gamedata: GameData, hazard_positions: List[dict]):
         for position in enemy_snake.get_body_positions():
             board[position["x"], position["y"]] = invalid
 
+    compute_hazard_distance_board(board, unvisited, invalid)
+
     return board
 
 
-def compute_distance_board(board, unvisited: float, invalid: float):
+def compute_food_distance_board(board, position, unvisited, invalid):
+    # TODO this implementation sucks, change it later
+
+    board_width = board.shape[0]
+    board_height = board.shape[1]
+
+    filter_size = 3
+
+    while filter_size <= board_width * 2:
+        filter_start_x = (position["x"] - floor(filter_size/2)) % board_width
+        filter_start_y = (position["y"] - floor(filter_size/2)) % board_height
+
+        for i in range(0, filter_size):
+            for j in range(0, filter_size):
+                x = (filter_start_x + i) % board_width
+                y = (filter_start_y + j) % board_height
+                val = board[x, y]
+                if val == invalid or val != unvisited:
+                    continue
+                surrounding_positions = [
+                    {"x": (x - 1) % board_width, "y": y},
+                    {"x": (x + 1) % board_width, "y": y},
+                    {"x": x, "y": (y - 1) % board_height},
+                    {"x": x, "y": (y + 1) % board_height},
+                ]
+                min_value = invalid
+                for sp in surrounding_positions:
+                    sp_val = board[sp["x"], sp["y"]]
+                    if sp_val != invalid and sp_val != unvisited and sp_val < min_value:
+                        min_value = sp_val
+
+                if min_value != invalid:
+                    board[x, y] = min_value + 1
+            for j in range(filter_start_y, filter_size):
+                x = (filter_start_x + i) % board_width
+                y = (filter_start_y + j) % board_height
+                val = board[x, y]
+                if val == invalid or val != unvisited:
+                    continue
+                surrounding_positions = [
+                    {"x": (x - 1) % board_width, "y": y},
+                    {"x": (x + 1) % board_width, "y": y},
+                    {"x": x, "y": (y - 1) % board_height},
+                    {"x": x, "y": (y + 1) % board_height},
+                ]
+                min_value = invalid
+                for sp in surrounding_positions:
+                    sp_val = board[sp["x"], sp["y"]]
+                    if sp_val != invalid and sp_val != unvisited and sp_val < min_value:
+                        min_value = sp_val
+
+                if min_value != invalid:
+                    board[x, y] = min_value + 1
+
+        filter_size += 2
+
+
+def compute_hazard_distance_board(board, unvisited: float, invalid: float):
     board_width = board.shape[0]
     board_height = board.shape[1]
 
