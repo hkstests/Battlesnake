@@ -77,8 +77,8 @@ def handle_move(gamedata: GameData) -> string:
     # get food maps
     food_maps = get_food_maps(gamedata, food_positions)
 
-    best_move_idx = 0
     min_cost = 10000
+    best_actions = []
 
     # print(food_maps[0])
 
@@ -88,10 +88,30 @@ def handle_move(gamedata: GameData) -> string:
             action = last_selection_actions[j]
             cost = food_map[action.get_position()["x"], action.get_position()["y"]]
             if cost < min_cost:
+                best_actions = [action]
                 min_cost = cost
-                best_move_idx = j
+            elif cost == min_cost:
+                best_actions.append(action)
 
-    return last_selection_actions[best_move_idx].get_move().value
+    if len(best_actions) == 1:
+        return best_actions[0].get_move().value
+
+    return get_targeted_kill_action(gamedata, best_actions).get_move().value
+
+
+def get_targeted_kill_action(gamedata: GameData, actions: List[Action]) -> Action:
+    for action in actions:
+        if is_targeted_kill_action(gamedata, action):
+            return action
+    return actions[0]
+
+
+def is_targeted_kill_action(gamedata: GameData, action: Action) -> bool:
+    for enemy_snake in gamedata.get_enemy_snakes():
+        if is_enemy_snake_close_to_action(gamedata, enemy_snake, action):
+            enemy_smaller = len(enemy_snake.get_body_positions()) < len(gamedata.get_my_snake().get_body_positions())
+            return enemy_smaller
+    return False
 
 
 def get_head_collision_save_actions(gamedata: GameData, actions: List[Action]) -> List[Action]:
@@ -103,15 +123,20 @@ def get_head_collision_save_actions(gamedata: GameData, actions: List[Action]) -
     return head_collision_free_actions
 
 
+def is_enemy_snake_close_to_action(gamedata: GameData, enemy_snake: Snake, action) -> bool:
+    head_position = enemy_snake.get_head_position()
+    is_horizontal_next = head_position["x"] == action.get_position()["x"] and ((head_position["y"] + 1) % gamedata.get_board_height() == action.get_position()
+                                                                               ["y"] or (head_position["y"] - 1) % gamedata.get_board_height() == action.get_position()["y"])
+    is_vertical_next = head_position["y"] == action.get_position()["y"] and ((head_position["x"] + 1) % gamedata.get_board_width() == action.get_position()
+                                                                             ["x"] or (head_position["x"] - 1) % gamedata.get_board_width() == action.get_position()["x"])
+    return is_horizontal_next or is_vertical_next
+
+
 def is_action_head_collision_save(gamedata: GameData, action: Action):
     for enemy_snake in gamedata.get_enemy_snakes():
-        head_position = enemy_snake.get_head_position()
-        is_horizontal_next = head_position["x"] == action.get_position()["x"] and ((head_position["y"] + 1) % gamedata.get_board_height() == action.get_position()
-                                                                                   ["y"] or (head_position["y"] - 1) % gamedata.get_board_height() == action.get_position()["y"])
-        is_vertical_next = head_position["y"] == action.get_position()["y"] and ((head_position["x"] + 1) % gamedata.get_board_width() == action.get_position()
-                                                                                 ["x"] or (head_position["x"] - 1) % gamedata.get_board_width() == action.get_position()["x"])
-        if is_horizontal_next or is_vertical_next:
-            return len(enemy_snake.get_body_positions()) < len(gamedata.get_my_snake().get_body_positions())
+        if is_enemy_snake_close_to_action(gamedata, enemy_snake, action):
+            enemy_smaller = len(enemy_snake.get_body_positions()) < len(gamedata.get_my_snake().get_body_positions())
+            return enemy_smaller
     return True
 
 
