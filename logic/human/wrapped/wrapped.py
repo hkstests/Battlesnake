@@ -49,7 +49,7 @@ def handle_move(gamedata: GameData) -> string:
         last_selection_actions = escape_actions
 
     # prevent head to head collision
-    headless_free_actions = get_head_collision_free_actions(gamedata, last_selection_actions)
+    headless_free_actions = get_head_collision_save_actions(gamedata, last_selection_actions)
     if len(headless_free_actions) != 0:
         last_selection_actions = headless_free_actions
 
@@ -71,45 +71,25 @@ def handle_move(gamedata: GameData) -> string:
     return handle_return_move(last_selection_actions[best_move_idx].get_move())
 
 
-def get_head_collision_free_actions(gamedata: GameData, actions: List[Action]):
+def get_head_collision_save_actions(gamedata: GameData, actions: List[Action]):
     head_collision_free_actions = []
     for action in actions:
-        if is_action_head_collision_free(gamedata, action):
+        if is_action_head_collision_save(gamedata, action):
             head_collision_free_actions.append(action)
 
     return head_collision_free_actions
 
 
-def is_action_head_collision_free(gamedata: GameData, action: Action):
-    if is_snake_collision_space_free(gamedata.get_enemy_snakes(), action):
-        return True
-
-    if is_action_continuing(gamedata.get_my_snake(), action):
-        # no enemy snake should get to the same position by following its current direction
-        return (not is_continuing_head_collision_possible(gamedata.get_enemy_snakes(), action))
-
-    return False
-
-
-def is_continuing_head_collision_possible(enemy_snakes: List[Snake], action: Action):
-    for enemy_snake in enemy_snakes:
+def is_action_head_collision_save(gamedata: GameData, action: Action):
+    for enemy_snake in gamedata.get_enemy_snakes():
         head_position = enemy_snake.get_head_position()
-        if (abs(head_position["x"] - action.get_position()["x"]) + abs(head_position["y"] - action.get_position()["y"]) <= 1):
-            return is_action_continuing(enemy_snake, action)
-    return False
-
-
-def is_snake_collision_space_free(enemy_snakes: List[Snake], action: Action):
-    for enemy_snake in enemy_snakes:
-        head_position = enemy_snake.get_head_position()
-        if (abs(head_position["x"] - action.get_position()["x"]) + abs(head_position["y"] - action.get_position()["y"]) <= 1):
-            return False
+        is_horizontal_next = head_position["x"] == action.get_position()["x"] and ((head_position["y"] + 1) % gamedata.get_board_height() == action.get_position()
+                                                                                   ["y"] or (head_position["y"] - 1) % gamedata.get_board_height() == action.get_position()["y"])
+        is_vertical_next = head_position["y"] == action.get_position()["y"] and ((head_position["x"] + 1) % gamedata.get_board_width() == action.get_position()
+                                                                                 ["x"] or (head_position["x"] - 1) % gamedata.get_board_width() == action.get_position()["x"])
+        if is_horizontal_next or is_vertical_next:
+            return len(enemy_snake.get_body_positions()) < len(gamedata.get_my_snake().get_body_positions())
     return True
-
-
-def is_action_continuing(snake: Snake, action: Action):
-    neck_position = snake.get_body_positions()[1]
-    return neck_position["x"] == action.get_position()["x"] or neck_position["y"] == action.get_position()["y"]
 
 
 def handle_return_move(move: Move) -> string:
