@@ -45,30 +45,29 @@ def handle_move(gamedata: GameData) -> string:
 
     save_mode = len(gamedata.get_hazard_positions())/(gamedata.get_board_width() * gamedata.get_board_height()) <= 0.6
 
-    if save_mode:
-        # get hazard free actions
-        hazard_free_actions = get_hazard_free_actions(gamedata, last_selection_actions)
-        # print(f"hazard_free_actions {len(hazard_free_actions)}")
+    # get hazard free actions
+    hazard_free_actions = get_hazard_free_actions(gamedata, last_selection_actions)
+    # print(f"hazard_free_actions {len(hazard_free_actions)}")
 
-        # if there is only one way to prevent a hazard, simply go it
-        if len(hazard_free_actions) == 1:  # TODO weakness, since a way through the hazard field is not considered as potentually better
-            return hazard_free_actions[0].get_move().value
+    # if there is only one way to prevent a hazard, simply go it
+    if len(hazard_free_actions) == 1:  # TODO weakness, since a way through the hazard field is not considered as potentually better
+        return hazard_free_actions[0].get_move().value
 
-        elif len(hazard_free_actions) == 0 and save_mode:  # TODO another weakness, since the snake immediately tries to escape the hazard. It might be better to simply go straight through it
-            # Note : escape actions will contain always more than 0 actions, since collision_free_actions has at least 2 actions
-            # at this point due to the previous if clauses
+    elif len(hazard_free_actions) == 0 and save_mode:  # TODO another weakness, since the snake immediately tries to escape the hazard. It might be better to simply go straight through it
+        # Note : escape actions will contain always more than 0 actions, since collision_free_actions has at least 2 actions
+        # at this point due to the previous if clauses
 
-            escape_actions = get_hazard_escape_actions(gamedata, gamedata.get_hazard_positions(), last_selection_actions)
-            # print(f"escape_actions {len(escape_actions)}")
+        escape_actions = get_hazard_escape_actions(gamedata, gamedata.get_hazard_positions(), last_selection_actions)
+        # print(f"escape_actions {len(escape_actions)}")
 
-            # if there is only one direction to escape the hazards, simply go it
-            if len(escape_actions) == 1:
-                return escape_actions[0].get_move().value
+        # if there is only one direction to escape the hazards, simply go it
+        if len(escape_actions) == 1:
+            return escape_actions[0].get_move().value
 
-            last_selection_actions = escape_actions
+        last_selection_actions = escape_actions
 
-        elif save_mode:
-            last_selection_actions = hazard_free_actions
+    else:
+        last_selection_actions = hazard_free_actions
 
     # get food positions outside of hazards
     food_positions = []
