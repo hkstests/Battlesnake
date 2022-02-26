@@ -36,29 +36,39 @@ def handle_move(gamedata: GameData) -> string:
     elif len(headless_free_actions) >= 2:
         last_selection_actions = headless_free_actions
 
-    # get hazard free actions
-    hazard_free_actions = get_hazard_free_actions(gamedata, last_selection_actions)
-    # print(f"hazard_free_actions {len(hazard_free_actions)}")
+    open_space_actions = get_open_space_actions(gamedata, last_selection_actions)
 
-    # if there is only one way to prevent a hazard, simply go it
-    if len(hazard_free_actions) == 1:  # TODO weakness, since a way through the hazard field is not considered as potentually better
-        return hazard_free_actions[0].get_move().value
+    if len(open_space_actions) == 1:
+        return open_space_actions[0].get_move().value
+    elif len(open_space_actions) >= 2:
+        last_selection_actions = open_space_actions
 
-    elif len(hazard_free_actions) == 0:  # TODO another weakness, since the snake immediately tries to escape the hazard. It might be better to simply go straight through it
-        # Note : escape actions will contain always more than 0 actions, since collision_free_actions has at least 2 actions
-        # at this point due to the previous if clauses
+    save_mode = len(gamedata.get_hazard_positions())/(gamedata.get_board_width() * gamedata.get_board_height()) <= 0.6
 
-        escape_actions = get_hazard_escape_actions(gamedata, gamedata.get_hazard_positions(), last_selection_actions)
-        # print(f"escape_actions {len(escape_actions)}")
+    if save_mode:
+        # get hazard free actions
+        hazard_free_actions = get_hazard_free_actions(gamedata, last_selection_actions)
+        # print(f"hazard_free_actions {len(hazard_free_actions)}")
 
-        # if there is only one direction to escape the hazards, simply go it
-        if len(escape_actions) == 1:
-            return escape_actions[0].get_move().value
+        # if there is only one way to prevent a hazard, simply go it
+        if len(hazard_free_actions) == 1:  # TODO weakness, since a way through the hazard field is not considered as potentually better
+            return hazard_free_actions[0].get_move().value
 
-        last_selection_actions = escape_actions
+        elif len(hazard_free_actions) == 0 and save_mode:  # TODO another weakness, since the snake immediately tries to escape the hazard. It might be better to simply go straight through it
+            # Note : escape actions will contain always more than 0 actions, since collision_free_actions has at least 2 actions
+            # at this point due to the previous if clauses
 
-    else:
-        last_selection_actions = hazard_free_actions
+            escape_actions = get_hazard_escape_actions(gamedata, gamedata.get_hazard_positions(), last_selection_actions)
+            # print(f"escape_actions {len(escape_actions)}")
+
+            # if there is only one direction to escape the hazards, simply go it
+            if len(escape_actions) == 1:
+                return escape_actions[0].get_move().value
+
+            last_selection_actions = escape_actions
+
+        elif save_mode:
+            last_selection_actions = hazard_free_actions
 
     # get food positions outside of hazards
     food_positions = []
@@ -112,6 +122,67 @@ def is_targeted_kill_action(gamedata: GameData, action: Action) -> bool:
             enemy_smaller = len(enemy_snake.get_body_positions()) < len(gamedata.get_my_snake().get_body_positions())
             return enemy_smaller
     return False
+
+
+def get_open_space_actions(gamedata: GameData, actions: List[Action]) -> List[Action]:
+    invalid = 1000
+    board = np.ones([gamedata.get_board_width(), gamedata.get_board_height()])
+
+    for position in gamedata.get_my_snake().get_body_positions():
+        board[position["x"], position["y"]] = invalid
+
+    for enemy_snake in gamedata.get_enemy_snakes():
+        for position in enemy_snake.get_body_positions():
+            board[position["x"], position["y"]] = invalid
+
+    open_space_actions = []
+
+    for action in actions:
+        space = floodFill(action.get_position(), board, [action.get_position()], invalid, 6, 0)
+        # print(f"space {space}")
+        if space >= 6:
+            open_space_actions.append(action)
+
+    return open_space_actions
+
+
+def floodFill(position, board, visited_positions, invalid, max_iter, iter):
+    if iter >= max_iter:
+        return 0
+
+    visited_positions.append(position)
+
+    left = {"x": (position["x"] - 1) % board.shape[0], "y": position["y"]}
+    right = {"x": (position["x"] + 1) % board.shape[0], "y": position["y"]}
+    up = {"x": position["x"], "y": (position["y"] + 1) % board.shape[1]}
+    down = {"x": position["x"], "y": (position["y"] - 1) % board.shape[1]}
+
+    next_positions = []
+
+    if board[left["x"], left["y"]] != invalid:
+        next_positions.append(left)
+
+    if board[right["x"], right["y"]] != invalid:
+        next_positions.append(right)
+
+    if board[up["x"], up["y"]] != invalid:
+        next_positions.append(up)
+
+    if board[down["x"], down["y"]] != invalid:
+        next_positions.append(down)
+
+    value = 1
+
+    for next_position in next_positions:
+        already_visited = False
+        for visited_position in visited_positions:
+            if next_position["x"] == visited_position["x"] and next_position["y"] == visited_position["y"]:
+                already_visited = True
+
+        if not already_visited:
+            value += floodFill(next_position, board, visited_positions, invalid, max_iter, iter + 1)
+
+    return value
 
 
 def get_head_collision_save_actions(gamedata: GameData, actions: List[Action]) -> List[Action]:
