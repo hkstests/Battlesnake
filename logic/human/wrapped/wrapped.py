@@ -13,11 +13,8 @@ def handle_move(gamedata: GameData) -> string:
     # get actions left, right, up, down with their respective position (with respect to the head position)
     possible_actions = get_initial_actions(gamedata)
 
-    # print(f"possible_actions {len(possible_actions)}")
-
     # remove actions that would lead to a collision (with itself or other snakes)
     collision_free_actions = get_collision_free_actions(gamedata, possible_actions)
-    # print(f"collision_free_actions {len(collision_free_actions)}")
 
     # just go left if you'd die anyway due to collision
     if len(collision_free_actions) == 0:
@@ -30,7 +27,7 @@ def handle_move(gamedata: GameData) -> string:
     last_selection_actions = collision_free_actions
 
     headless_free_actions = get_head_collision_save_actions(gamedata, last_selection_actions)
-    # print(f"headless_free_actions {len(headless_free_actions)}")
+
     if len(headless_free_actions) == 1:
         return headless_free_actions[0].get_move().value
     elif len(headless_free_actions) >= 2:
@@ -47,7 +44,6 @@ def handle_move(gamedata: GameData) -> string:
 
     # get hazard free actions
     hazard_free_actions = get_hazard_free_actions(gamedata, last_selection_actions)
-    # print(f"hazard_free_actions {len(hazard_free_actions)}")
 
     # if there is only one way to prevent a hazard, simply go it
     if len(hazard_free_actions) == 1:  # TODO weakness, since a way through the hazard field is not considered as potentually better
@@ -58,7 +54,6 @@ def handle_move(gamedata: GameData) -> string:
         # at this point due to the previous if clauses
 
         escape_actions = get_hazard_escape_actions(gamedata, gamedata.get_hazard_positions(), last_selection_actions)
-        # print(f"escape_actions {len(escape_actions)}")
 
         # if there is only one direction to escape the hazards, simply go it
         if len(escape_actions) == 1:
@@ -70,6 +65,45 @@ def handle_move(gamedata: GameData) -> string:
         last_selection_actions = hazard_free_actions
 
     # get food positions outside of hazards
+    food_positions = get_hazard_free_food_positions(gamedata)
+
+    # if all food is located insize hazards, then use them for the following computations
+    if len(food_positions) == 0:
+        food_positions = gamedata.get_food_positions()
+
+    # extract those actions that bring the snake closer to food
+    last_selection_actions = get_best_actions_towards_food(gamedata, last_selection_actions, food_positions)
+
+    # if there is a unique best action, simply do it
+    if len(last_selection_actions) == 1:
+        return last_selection_actions[0].get_move().value
+
+    # if there are multiple best options, choose the one where you might kill another snake (head collision)
+    return get_targeted_kill_action(gamedata, last_selection_actions).get_move().value
+
+
+def get_best_actions_towards_food(gamedata: GameData, actions: List[Action], food_positions) -> List[Action]:
+    # get food maps
+    food_maps = get_food_maps(gamedata, food_positions)
+
+    min_cost = 10000
+    best_actions = []
+
+    for i in range(len(food_maps)):
+        food_map = food_maps[i]
+        for j in range(len(actions)):
+            action = actions[j]
+            cost = food_map[action.get_position()["x"], action.get_position()["y"]]
+            if cost < min_cost:
+                best_actions = [action]
+                min_cost = cost
+            elif cost == min_cost:
+                best_actions.append(action)
+
+    return best_actions
+
+
+def get_hazard_free_food_positions(gamedata: GameData) -> List[dict]:
     food_positions = []
     for food_position in gamedata.get_food_positions():
         is_food_in_hazard = False
@@ -79,33 +113,7 @@ def handle_move(gamedata: GameData) -> string:
                 break
         if not is_food_in_hazard:
             food_positions.append(food_position)
-
-    if len(food_positions) == 0:
-        food_positions = gamedata.get_food_positions()
-
-    # get food maps
-    food_maps = get_food_maps(gamedata, food_positions)
-
-    min_cost = 10000
-    best_actions = []
-
-    # print(food_maps[0])
-
-    for i in range(len(food_maps)):
-        food_map = food_maps[i]
-        for j in range(len(last_selection_actions)):
-            action = last_selection_actions[j]
-            cost = food_map[action.get_position()["x"], action.get_position()["y"]]
-            if cost < min_cost:
-                best_actions = [action]
-                min_cost = cost
-            elif cost == min_cost:
-                best_actions.append(action)
-
-    if len(best_actions) == 1:
-        return best_actions[0].get_move().value
-
-    return get_targeted_kill_action(gamedata, best_actions).get_move().value
+    return food_positions
 
 
 def get_targeted_kill_action(gamedata: GameData, actions: List[Action]) -> Action:
@@ -137,10 +145,12 @@ def get_open_space_actions(gamedata: GameData, actions: List[Action]) -> List[Ac
     open_space_actions = []
 
     for action in actions:
-        space = floodFill(action.get_position(), board, [action.get_position()], invalid, 6, 0)
-        # print(f"space {space}")
-        if space >= 6:
+        space = floodFill(action.get_position(), board, [action.get_position()], invalid, 8, 0)
+        # print(f"space : {space}")
+        if space >= 15:
             open_space_actions.append(action)
+
+    # print(f"len open spaces : {len(open_space_actions)}")
 
     return open_space_actions
 
@@ -395,47 +405,28 @@ def compute_food_distance_board(board, position, unvisited, invalid):
         filter_start_x = (position["x"] - floor(filter_size/2)) % board_width
         filter_start_y = (position["y"] - floor(filter_size/2)) % board_height
 
-        for i in range(0, filter_size):
-            for j in range(0, filter_size):
-                x = (filter_start_x + i) % board_width
-                y = (filter_start_y + j) % board_height
-                val = board[x, y]
-                if val == invalid or val != unvisited:
-                    continue
-                surrounding_positions = [
-                    {"x": (x - 1) % board_width, "y": y},
-                    {"x": (x + 1) % board_width, "y": y},
-                    {"x": x, "y": (y - 1) % board_height},
-                    {"x": x, "y": (y + 1) % board_height},
-                ]
-                min_value = invalid
-                for sp in surrounding_positions:
-                    sp_val = board[sp["x"], sp["y"]]
-                    if sp_val != invalid and sp_val != unvisited and sp_val < min_value:
-                        min_value = sp_val
+        for t in range(0, 2):
+            for i in range(0, filter_size):
+                for j in range(0, filter_size):
+                    x = (filter_start_x + i) % board_width
+                    y = (filter_start_y + j) % board_height
+                    val = board[x, y]
+                    if val == invalid or val != unvisited:
+                        continue
+                    surrounding_positions = [
+                        {"x": (x - 1) % board_width, "y": y},
+                        {"x": (x + 1) % board_width, "y": y},
+                        {"x": x, "y": (y - 1) % board_height},
+                        {"x": x, "y": (y + 1) % board_height},
+                    ]
+                    min_value = invalid
+                    for sp in surrounding_positions:
+                        sp_val = board[sp["x"], sp["y"]]
+                        if sp_val != invalid and sp_val != unvisited and sp_val < min_value:
+                            min_value = sp_val
 
-                if min_value != invalid:
-                    board[x, y] = min_value + 1
-            for j in range(filter_start_y, filter_size):
-                x = (filter_start_x + i) % board_width
-                y = (filter_start_y + j) % board_height
-                val = board[x, y]
-                if val == invalid or val != unvisited:
-                    continue
-                surrounding_positions = [
-                    {"x": (x - 1) % board_width, "y": y},
-                    {"x": (x + 1) % board_width, "y": y},
-                    {"x": x, "y": (y - 1) % board_height},
-                    {"x": x, "y": (y + 1) % board_height},
-                ]
-                min_value = invalid
-                for sp in surrounding_positions:
-                    sp_val = board[sp["x"], sp["y"]]
-                    if sp_val != invalid and sp_val != unvisited and sp_val < min_value:
-                        min_value = sp_val
-
-                if min_value != invalid:
-                    board[x, y] = min_value + 1
+                    if min_value != invalid:
+                        board[x, y] = min_value + 1
 
         filter_size += 2
 
