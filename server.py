@@ -16,7 +16,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 #os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
@@ -81,7 +81,7 @@ def handle_move():
     #     move = squad.handle_move(gamedata)
     # else:
     #     move = standard.handle_move(gamedata)
-    
+
     start = time.time()
     # move = wrapped.handle_move(gamedata)
     # print(f"move turn : {gamedata.get_turn()} to {move}")
@@ -137,9 +137,13 @@ if __name__ == "__main__":
     print("Starting Battlesnake Server...")
 
     is_local = os.getenv('IS_LOCAL') == "True"
+    is_heroku = os.getenv('IS_HEROKU') == "True"
 
-    if is_local:
+    print(f"is_heroku {is_heroku}")
+
+    if is_local or is_heroku:
+        print("run local or heroku")
         port = int(os.environ.get("PORT", "8080"))
         app.run(host="0.0.0.0", port=port, debug=True)
-    else:
-        keep_alive()
+    # else:
+        # keep_alive()
