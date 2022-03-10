@@ -18,7 +18,7 @@ for snake in gamedata.snakes:
 
 gamedata = wrapped_spiral_simulator(gamedata, moverequests)
 gamedata = wrapped_spiral_simulator(gamedata, moverequests)
-gamedata.hazards.append(Position(5, 5))
+gamedata.hazards.append(Position(0, 0))
 gamedata = wrapped_spiral_simulator(gamedata, moverequests)
 gamedata = wrapped_spiral_simulator(gamedata, moverequests)
 gamedata = wrapped_spiral_simulator(gamedata, moverequests)
@@ -32,8 +32,6 @@ moverequests: List[Moverequest] = []
 for snake in gamedata.snakes:
     moverequests.append(Moverequest(snake.id, "right"))
 
-gamedata = wrapped_spiral_simulator(gamedata, moverequests)
-gamedata = wrapped_spiral_simulator(gamedata, moverequests)
-gamedata = wrapped_spiral_simulator(gamedata, moverequests)
-
-gamedata.print()
+for i in range(0, 20):
+    gamedata = wrapped_spiral_simulator(gamedata, moverequests)
+    gamedata.print()

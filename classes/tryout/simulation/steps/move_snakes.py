@@ -11,17 +11,19 @@ from classes.tryout.simulation.steps.utils import get_snake_by_id
 def move_snakes_standard(gamedata: Gamedata, moverequests: List[Moverequest]):
     for moverequest in moverequests:
         snake = get_snake_by_id(gamedata, moverequest.id)
-        next_head_position = _compute_next_head_position(snake, moverequest)
-        _move_snake(snake, next_head_position)
+        if snake is not None:
+            next_head_position = _compute_next_head_position(snake, moverequest)
+            _move_snake(snake, next_head_position)
 
 
 def move_snakes_wrapped(gamedata: Gamedata, moverequests: List[Moverequest]):
     for moverequest in moverequests:
         snake = get_snake_by_id(gamedata, moverequest.id)
-        next_head_position = _compute_next_head_position(snake, moverequest)
-        # use mod for wrapped movement
-        next_head_position = Position(next_head_position.x % gamedata.board_width, next_head_position.y % gamedata.board_height)
-        _move_snake(snake, next_head_position)
+        if snake is not None:
+            next_head_position = _compute_next_head_position(snake, moverequest)
+            # use mod for wrapped movement
+            next_head_position = Position(next_head_position.x % gamedata.board_width, next_head_position.y % gamedata.board_height)
+            _move_snake(snake, next_head_position)
 
 
 def _compute_next_head_position(snake: Snake, moverequest: Moverequest) -> Position:

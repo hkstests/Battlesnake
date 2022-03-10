@@ -125,6 +125,6 @@ class Gamedata():
             print("--------------------")
             snake.print()
         print("--------------------")
-        print("## My snake ##")
-        self.my_snake.print()
+        # print("## My snake ##")
+        # self.my_snake.print()
         print("+++++++++++++++++++++++++++++++++++")
